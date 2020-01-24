@@ -16,7 +16,7 @@ type BasicMessage struct {
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Fatal("$PORT must be set")
+		port = "8080"
 	}
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", Index)
