@@ -36,6 +36,11 @@ func main() {
 	}
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", Index)
+	router.HandleFunc("/workspace", createWorkspace).Methods("POST")
+	router.HandleFunc("/workspaces/{id}", getOneWorkspace).Methods("GET")
+	router.HandleFunc("/workspaces", getAllWorkspaces).Methods("GET")
+	router.HandleFunc("/workspaces/{id}", updateWorkspace).Methods("PATCH")
+	router.HandleFunc("/workspaces/{id}", deleteWorkspace).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
 
