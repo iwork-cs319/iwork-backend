@@ -21,6 +21,7 @@ func NewApp() *App {
 func (app *App) Setup(port string) error {
 	app.router.HandleFunc("/", app.index)
 	app.RegisterWorkspaceRoutes()
+	app.RegisterBookingRoutes()
 	return http.ListenAndServe(":"+port, app.router)
 }
 

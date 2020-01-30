@@ -24,6 +24,8 @@ type bookingProvider interface {
 	GetAllBookings(id string) (*model.Booking, error)
 	GetBookingByWorkspaceID(id string) (*[]model.Booking, error)
 	GetBookingByUserID(id string) (*[]model.Booking, error)
+	GetBookingsByDateRange(start string, end string) (*[]model.Booking, error)
 	CreateBooking(booking *model.Booking) error
 	UpdateBooking(id string, booking *model.Booking) error
+	RemoveBooking(id string) error
 }
