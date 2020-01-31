@@ -1,7 +1,14 @@
 package routes
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/mux"
+	"go-api/model"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"regexp"
 )
 
 func (app *App) RegisterBookingRoutes() {
@@ -9,7 +16,7 @@ func (app *App) RegisterBookingRoutes() {
 	app.router.HandleFunc("/bookings/{id}", app.GetOneBooking).Methods("GET")
 	app.router.HandleFunc("/bookings/workspaces/{workspace_id}", app.GetBookingsByWorkspaceID).Methods("GET")
 	app.router.HandleFunc("/bookings/users/{user_id}", app.GetBookingsByUserID).Methods("GET")
-	app.router.HandleFunc("/bookings/start/{start_time}/end/{end_time}", app.GetBookingsByDateRange).Methods("GET")
+	app.router.HandleFunc("/bookings", app.GetBookingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET")
 	app.router.HandleFunc("/bookings/{id}", app.UpdateBooking).Methods("PATCH")
 	app.router.HandleFunc("/bookings/{id}", app.RemoveBooking).Methods("DELETE")
@@ -72,7 +79,14 @@ func (app *App) GetAllBookings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetBookingsByWorkspaceID(w http.ResponseWriter, r *http.Request) {
-	bookings, err := app.store.BookingProvider.GetBookingsByWorkspaceID()
+	workspaceID := mux.Vars(r)["id"]
+
+	if workspaceID == "" {
+		log.Printf("App.GetOneBooking - empty booking id")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	bookings, err := app.store.BookingProvider.GetBookingsByWorkspaceID(workspaceID)
 	if err != nil {
 		log.Printf("App.GetBookingsByWorkspaceID - error getting bookings by workspaceID from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -82,7 +96,14 @@ func (app *App) GetBookingsByWorkspaceID(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *App) GetBookingsByUserID(w http.ResponseWriter, r *http.Request) {
-	bookings, err := app.store.BookingProvider.GetBookingsByUserID()
+	userID := mux.Vars(r)["id"]
+
+	if userID == "" {
+		log.Printf("App.GetOneBooking - empty booking id")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	bookings, err := app.store.BookingProvider.GetBookingsByUserID(userID)
 	if err != nil {
 		log.Printf("App.GetBookingsByUserID - error getting bookings by userID from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -92,7 +113,17 @@ func (app *App) GetBookingsByUserID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
-	bookings, err := app.store.BookingProvider.GetBookingsByDateRange()
+	queryParams := r.URL.Query()
+	start := queryParams["start"][0]
+	end := queryParams["end"][0]
+	re := regexp.MustCompile(`\d{4}\d{2}\d{2}`)
+	if re.MatchString(start) == false || re.MatchString(end) {
+		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	
+	bookings, err := app.store.BookingProvider.GetBookingsByDateRange(start, end)
 	if err != nil {
 		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)

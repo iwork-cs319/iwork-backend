@@ -15,5 +15,5 @@ type Booking struct {
 	UserID      string    `json:"user_id"`
 	StartDate   time.Time `json:"start_time"`
 	EndDate     time.Time `json:"end_time"`
-	Canceled    bool      `json:"cancelled"`
+	Cancelled    bool      `json:"cancelled"`
 }

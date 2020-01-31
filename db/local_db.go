@@ -7,6 +7,43 @@ type LocalDBStore struct {
 	bookings map[string]*model.Booking
 }
 
+func (l LocalDBStore) GetBookingsByDateRange(start string, end string) ([]*model.Booking, error) {
+	var list []*model.Booking
+	if len(l.bookings) < 1 {
+		return nil, EmptyError
+	}
+	for _, b := range l.bookings {
+		list = append(list, b)
+	}
+	return list, nil
+}
+
+func (l LocalDBStore) GetBookingsByUserID(id string) ([]*model.Booking, error) {
+	var list []*model.Booking
+	if len(l.bookings) < 1 {
+		return nil, EmptyError
+	}
+	for _, b := range l.bookings {
+		if b.UserID == id {
+			list = append(list, b)
+		}
+	}
+	return list, nil
+}
+
+func (l LocalDBStore) GetBookingsByWorkspaceID(id string) ([]*model.Booking, error) {
+	var list []*model.Booking
+	if len(l.bookings) < 1 {
+		return nil, EmptyError
+	}
+	for _, b := range l.bookings {
+		if b.WorkspaceID == id {
+			list = append(list, b)
+		}
+	}
+	return list, nil
+}
+
 func (l LocalDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
 	w, ok := l.workspaces[id]
 	if !ok {
@@ -72,15 +109,15 @@ func (l LocalDBStore) UpdateBooking(id string, booking *model.Booking) error {
 	if booking.UserID != "" {
 		l.bookings[id].UserID = booking.WorkspaceID
 	}
-	if booking.StartDate != nil {
+	if booking.StartDate.IsZero() {
 		l.bookings[id].StartDate = booking.StartDate
 	}
-	if booking.EndDate != nil {
+	if booking.EndDate.IsZero() {
 		l.bookings[id].EndDate = booking.EndDate
 	}
-	if booking.Canceled != nil {
-		l.bookings[id].Canceled = booking.Canceled
-	}
+	//if booking.Canceled != nil {
+	//	l.bookings[id].Canceled = booking.Canceled
+	//}
 	return nil
 }
 
@@ -129,23 +166,6 @@ func NewLocalDataStore() *DataStore {
 				Props: nil,
 			},
 		}},
-		BookingProvider: &LocalDBStore{bookings: map[string]*model.Booking{
-			"1": {
-				ID:    "1",
-				WorkspaceID:  "1",
-				UserID: nil, // Not Implemented!
-				StartDate: "2020/01/30",
-				EndDate: "2020/01/30", // One day booking
-				Canceled: false,
-			},
-			"2": {
-				ID:    "2",
-				WorkspaceID:  "2",
-				UserID: nil, // Not Implemented!
-				StartDate: "2020/01/28",
-				EndDate: "2020/01/30", // Range booking
-				Canceled: true, // Canceled
-			},
-		}},
+		BookingProvider: nil,
 	}
 }

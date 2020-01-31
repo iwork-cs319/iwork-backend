@@ -8,7 +8,7 @@ var EmptyError = errors.New("empty")
 
 type DataStore struct {
 	WorkspaceProvider workspaceProvider
-	//BookingProvider   bookingProvider
+	BookingProvider   bookingProvider
 }
 
 type workspaceProvider interface {
@@ -21,9 +21,9 @@ type workspaceProvider interface {
 
 type bookingProvider interface {
 	GetOneBooking(id string) (*model.Booking, error)
-	GetAllBookings(id string) (*model.Booking, error)
-	GetBookingByWorkspaceID(id string) (*[]model.Booking, error)
-	GetBookingByUserID(id string) (*[]model.Booking, error)
+	GetAllBookings() (*model.Booking, error)
+	GetBookingsByWorkspaceID(id string) (*[]model.Booking, error)
+	GetBookingsByUserID(id string) (*[]model.Booking, error)
 	GetBookingsByDateRange(start string, end string) (*[]model.Booking, error)
 	CreateBooking(booking *model.Booking) error
 	UpdateBooking(id string, booking *model.Booking) error
