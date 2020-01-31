@@ -7,12 +7,12 @@ import (
 func (app *App) RegisterBookingRoutes() {
 	app.router.HandleFunc("/bookings", app.CreateBooking).Methods("POST")
 	app.router.HandleFunc("/bookings/{id}", app.GetOneBooking).Methods("GET")
-	app.router.HandleFunc("/bookings/{workspace_id}", app.GetBookingsByWorkspaceID).Methods("GET")
-	app.router.HandleFunc("/bookings/{user_id}", app.GetBookingsByUserID).Methods("GET")
-	app.router.HandleFunc("/bookings/{start_time}/{end_time}", app.GetBookingsByDateRange).Methods("GET")
+	app.router.HandleFunc("/bookings/workspaces/{workspace_id}", app.GetBookingsByWorkspaceID).Methods("GET")
+	app.router.HandleFunc("/bookings/users/{user_id}", app.GetBookingsByUserID).Methods("GET")
+	app.router.HandleFunc("/bookings/start/{start_time}/end/{end_time}", app.GetBookingsByDateRange).Methods("GET")
 	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET")
 	app.router.HandleFunc("/bookings/{id}", app.UpdateBooking).Methods("PATCH")
-	app.router.HandleFunc("/bookings/{id}", app.DeleteBooking).Methods("DELETE")
+	app.router.HandleFunc("/bookings/{id}", app.RemoveBooking).Methods("DELETE")
 }
 
 func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
@@ -131,18 +131,18 @@ func (app *App) UpdateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *App) DeleteBooking(w http.ResponseWriter, r *http.Request) {
+func (app *App) RemoveBooking(w http.ResponseWriter, r *http.Request) {
 	bookingID := mux.Vars(r)["id"]
 
 	if bookingID == "" {
-		log.Printf("App.DeleteBooking - empty booking id")
+		log.Printf("App.RemoveBooking - empty booking id")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err := app.store.BookingProvider.RemoveBooking(bookingID)
 	if err != nil {
-		log.Printf("App.DeleteBooking - error getting all bookings from provider %v", err)
+		log.Printf("App.RemoveBooking - error getting all bookings from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
