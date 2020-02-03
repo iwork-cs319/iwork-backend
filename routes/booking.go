@@ -2,13 +2,12 @@ package routes
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"go-api/model"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"regexp"
+	"time"
 )
 
 func (app *App) RegisterBookingRoutes() {
@@ -116,14 +115,15 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	start := queryParams["start"][0]
 	end := queryParams["end"][0]
-	re := regexp.MustCompile(`\d{4}\d{2}\d{2}`)
-	if re.MatchString(start) == false || re.MatchString(end) {
+	_, err_start := time.Parse(time.RFC3339, start) // Assumes format "2006-01-02T15:04:05Z" or "2006-01-02T15:04:05+07:00"
+	_, err_end := time.Parse(time.RFC3339, end)
+	if err_start != nil || err_end != nil {
 		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	
-	bookings, err := app.store.BookingProvider.GetBookingsByDateRange(start, end)
+	bookings, err := app.store.BookingProvider.GetBookingsByDateRange(start, end) // TODO: Send parsed instead?
 	if err != nil {
 		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
