@@ -115,8 +115,8 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	start := queryParams["start"][0]
 	end := queryParams["end"][0]
-	_, errStart := time.Parse(time.RFC3339, start) // Assumes format "2006-01-02T15:04:05Z" or "2006-01-02T15:04:05+07:00"
-	_, errEnd := time.Parse(time.RFC3339, end)
+	startTime, errStart := time.Parse(time.UnixDate, start) // Unix Timestamp
+	endTime, errEnd := time.Parse(time.UnixDate, end)
 	if errStart != nil {
 		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", errStart)
 		w.WriteHeader(http.StatusBadRequest)
@@ -127,7 +127,7 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	bookings, err := app.store.BookingProvider.GetBookingsByDateRange(start, end) // TODO: Send parsed instead?
+	bookings, err := app.store.BookingProvider.GetBookingsByDateRange(startTime, endTime) // TODO: Send parsed instead?
 	if err != nil {
 		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
