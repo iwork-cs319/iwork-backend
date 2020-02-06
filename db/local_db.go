@@ -2,6 +2,7 @@ package db
 
 import (
 	"go-api/model"
+	"log"
 	"time"
 )
 
@@ -125,7 +126,7 @@ func (l LocalDBStore) UpdateBooking(id string, booking *model.Booking) error {
 		return NotFoundError
 	}
 	if booking.WorkspaceID != "" {
-		l.bookings[id].WorkspaceID = booking.WorkspaceID
+		log.Println(l.bookings[id].WorkspaceID)
 	}
 	if booking.UserID != "" {
 		l.bookings[id].UserID = booking.WorkspaceID
