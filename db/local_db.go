@@ -41,7 +41,7 @@ func (l LocalDBStore) CreateWorkspace(workspace *model.Workspace) error {
 }
 
 func (l LocalDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
-	var list []*model.Workspace
+	list := make([]*model.Workspace, 0)
 	if len(l.workspaces) < 1 {
 		return nil, EmptyError
 	}
@@ -65,7 +65,7 @@ func (l LocalDBStore) GetOneBooking(id string) (*model.Booking, error) {
 }
 
 func (l LocalDBStore) GetAllBookings() ([]*model.Booking, error) {
-	var list []*model.Booking
+	list := make([]*model.Booking, 0)
 	if len(l.bookings) < 1 {
 		return nil, EmptyError
 	}
@@ -76,7 +76,7 @@ func (l LocalDBStore) GetAllBookings() ([]*model.Booking, error) {
 }
 
 func (l LocalDBStore) GetBookingsByWorkspaceID(id string) ([]*model.Booking, error) {
-	var list []*model.Booking
+	list := make([]*model.Booking, 0)
 	if len(l.bookings) < 1 {
 		return nil, EmptyError
 	}
@@ -89,7 +89,7 @@ func (l LocalDBStore) GetBookingsByWorkspaceID(id string) ([]*model.Booking, err
 }
 
 func (l LocalDBStore) GetBookingsByUserID(id string) ([]*model.Booking, error) {
-	var list []*model.Booking
+	list := make([]*model.Booking, 0)
 	if len(l.bookings) < 1 {
 		return nil, EmptyError
 	}
@@ -102,7 +102,7 @@ func (l LocalDBStore) GetBookingsByUserID(id string) ([]*model.Booking, error) {
 }
 
 func (l LocalDBStore) GetBookingsByDateRange(start time.Time, end time.Time) ([]*model.Booking, error) {
-	var list []*model.Booking
+	list := make([]*model.Booking, 0)
 	if len(l.bookings) < 1 {
 		return nil, EmptyError
 	}

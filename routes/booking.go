@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -78,7 +79,7 @@ func (app *App) GetAllBookings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetBookingsByWorkspaceID(w http.ResponseWriter, r *http.Request) {
-	workspaceID := mux.Vars(r)["id"]
+	workspaceID := mux.Vars(r)["workspace_id"]
 
 	if workspaceID == "" {
 		log.Printf("App.GetOneBooking - empty booking id")
@@ -95,7 +96,7 @@ func (app *App) GetBookingsByWorkspaceID(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *App) GetBookingsByUserID(w http.ResponseWriter, r *http.Request) {
-	userID := mux.Vars(r)["id"]
+	userID := mux.Vars(r)["user_id"]
 
 	if userID == "" {
 		log.Printf("App.GetOneBooking - empty booking id")
@@ -115,8 +116,8 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	start := queryParams["start"][0]
 	end := queryParams["end"][0]
-	startTime, errStart := time.Parse(time.UnixDate, start) // Unix Timestamp
-	endTime, errEnd := time.Parse(time.UnixDate, end)
+	startTime, errStart := timestampToTime(start) // Unix Timestamp
+	endTime, errEnd := timestampToTime(end)
 	if errStart != nil {
 		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", errStart)
 		w.WriteHeader(http.StatusBadRequest)
@@ -134,6 +135,15 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(bookings)
+}
+
+func timestampToTime(timestamp string) (time.Time, error) {
+	i, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	tm := time.Unix(i, 0)
+	return tm, err
 }
 
 func (app *App) UpdateBooking(w http.ResponseWriter, r *http.Request) {
