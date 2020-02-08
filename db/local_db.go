@@ -8,6 +8,95 @@ import (
 type LocalDBStore struct {
 	workspaces map[string]*model.Workspace
 	bookings   map[string]*model.Booking
+	offerings  map[string]*model.Offering
+}
+
+func (l LocalDBStore) GetOneOffering(id string) (*model.Offering, error) {
+	b, ok := l.offerings[id]
+	if !ok {
+		return nil, NotFoundError
+	}
+	return b, nil
+}
+
+func (l LocalDBStore) GetAllOfferings() ([]*model.Offering, error) {
+	list := make([]*model.Offering, 0)
+	if len(l.offerings) < 1 {
+		return nil, EmptyError
+	}
+	for _, w := range l.offerings {
+		list = append(list, w)
+	}
+	return list, nil
+}
+
+func (l LocalDBStore) GetOfferingsByWorkspaceID(id string) ([]*model.Offering, error) {
+	list := make([]*model.Offering, 0)
+	if len(l.offerings) < 1 {
+		return nil, EmptyError
+	}
+	for _, b := range l.offerings {
+		if b.WorkspaceID == id {
+			list = append(list, b)
+		}
+	}
+	return list, nil
+}
+
+func (l LocalDBStore) GetOfferingsByUserID(id string) ([]*model.Offering, error) {
+	list := make([]*model.Offering, 0)
+	if len(l.offerings) < 1 {
+		return nil, EmptyError
+	}
+	for _, b := range l.offerings {
+		if b.UserID == id {
+			list = append(list, b)
+		}
+	}
+	return list, nil
+}
+
+func (l LocalDBStore) GetOfferingsByDateRange(start time.Time, end time.Time) ([]*model.Offering, error) {
+	list := make([]*model.Offering, 0)
+	if len(l.offerings) < 1 {
+		return nil, EmptyError
+	}
+	for _, b := range l.offerings {
+		if b.StartDate.After(start) && b.EndDate.Before(end) { // Todo: Right way around?
+			list = append(list, b)
+		}
+	}
+	return list, nil
+}
+
+func (l LocalDBStore) CreateOffering(offering *model.Offering) error {
+	l.offerings[offering.ID] = offering
+	return nil
+}
+
+func (l LocalDBStore) UpdateOffering(id string, offering *model.Offering) error {
+	_, ok := l.offerings[id]
+	if !ok {
+		return NotFoundError
+	}
+	if offering.WorkspaceID != "" {
+		l.offerings[id].WorkspaceID = offering.WorkspaceID
+	}
+	if offering.UserID != "" {
+		l.offerings[id].UserID = offering.WorkspaceID
+	}
+	if !offering.StartDate.IsZero() {
+		l.offerings[id].StartDate = offering.StartDate
+	}
+	if !offering.EndDate.IsZero() {
+		l.offerings[id].EndDate = offering.EndDate
+	}
+	return nil
+}
+
+func (l LocalDBStore) RemoveOffering(id string) error {
+	delete(l.offerings, id)
+	return nil
 }
 
 func (l LocalDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
@@ -172,6 +261,24 @@ func NewLocalDataStore() *DataStore {
 			},
 		}},
 		BookingProvider: &LocalDBStore{bookings: map[string]*model.Booking{
+			"1": {
+				ID:          "1",
+				WorkspaceID: "1",
+				UserID:      "1",
+				StartDate:   time.Unix(1580869576, 0),
+				EndDate:     time.Unix(1580947199, 0),
+				Cancelled:   false,
+			},
+			"2": {
+				ID:          "2",
+				WorkspaceID: "2",
+				UserID:      "2",
+				StartDate:   time.Unix(1571011200, 0),
+				EndDate:     time.Unix(1571183999, 0),
+				Cancelled:   true,
+			},
+		}},
+		OfferingProvider: &LocalDBStore{offerings: map[string]*model.Offering{
 			"1": {
 				ID:          "1",
 				WorkspaceID: "1",

@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"go-api/model"
+	"go-api/utils"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
-	"time"
 )
 
 func (app *App) RegisterBookingRoutes() {
@@ -116,8 +115,8 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	start := queryParams["start"][0]
 	end := queryParams["end"][0]
-	startTime, errStart := timestampToTime(start) // Unix Timestamp
-	endTime, errEnd := timestampToTime(end)
+	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
+	endTime, errEnd := utils.TimeStampToTime(end)
 	if errStart != nil {
 		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", errStart)
 		w.WriteHeader(http.StatusBadRequest)
@@ -135,15 +134,6 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(bookings)
-}
-
-func timestampToTime(timestamp string) (time.Time, error) {
-	i, err := strconv.ParseInt(timestamp, 10, 64)
-	if err != nil {
-		return time.Time{}, err
-	}
-	tm := time.Unix(i, 0)
-	return tm, err
 }
 
 func (app *App) UpdateBooking(w http.ResponseWriter, r *http.Request) {
