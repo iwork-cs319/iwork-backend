@@ -2,8 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	_ "github.com/lib/pq"
 	"go-api/model"
+	"log"
 	"time"
 )
 
@@ -11,23 +13,52 @@ type PostgresDBStore struct {
 	database *sql.DB
 }
 
+var CreateError = errors.New("create error")
+
 func (p PostgresDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
-	sqlStatement := `SELECT id, name, floor FROM users WHERE id=$1;`
+	sqlStatement := `SELECT id, name, floor_id, user_id FROM workspaces WHERE id=$1;`
 	var workspace model.Workspace
+	var userId sql.NullString
 	row := p.database.QueryRow(sqlStatement, id)
-	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor)
+	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &userId)
 	if err != nil {
 		return nil, err
+	}
+	if userId.Valid {
+		workspace.User = userId.String
 	}
 	return &workspace, nil
 }
 
 func (p PostgresDBStore) UpdateWorkspace(id string, workspace *model.Workspace) error {
-	panic("implement me")
+	sqlStatement :=
+		`UPDATE workspaces
+				SET name = $2, floor_id = $3
+				WHERE id = $1
+				RETURNING id, name;`
+	var _id string
+	var name string
+	err := p.database.QueryRow(sqlStatement, id, workspace.Name, workspace.Floor).Scan(&_id, &name)
+	if err != nil {
+		return err
+	}
+	if _id != id || name != workspace.Name {
+		return CreateError
+	}
+	return nil
 }
 
 func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) error {
-	panic("implement me")
+	sqlStatement := `INSERT INTO workspaces(id, name, floor_id) VALUES ($1, $2, $3) RETURNING id`
+	var id string
+	err := p.database.QueryRow(sqlStatement, workspace.ID, workspace.Name, workspace.Floor).Scan(&id)
+	if err != nil {
+		return err
+	}
+	if id != workspace.ID {
+		return CreateError
+	}
+	return nil
 }
 
 func (p PostgresDBStore) RemoveWorkspace(id string) error {
@@ -35,39 +66,150 @@ func (p PostgresDBStore) RemoveWorkspace(id string) error {
 }
 
 func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
-	panic("implement me")
+	rows, err := p.database.Query(`SELECT id, name, floor_id, user_id FROM workspaces;`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	workspaces := make([]*model.Workspace, 0)
+	for rows.Next() {
+		var workspace model.Workspace
+		var userId sql.NullString
+		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &userId)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.GetAllWorkspaces: %v\n", err)
+		}
+		if userId.Valid {
+			workspace.User = userId.String
+		}
+		workspaces = append(workspaces, &workspace)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return workspaces, nil
 }
 
 func (p PostgresDBStore) GetOneBooking(id string) (*model.Booking, error) {
-	panic("implement me")
+	sqlStatement := `SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings WHERE id=$1;`
+	var booking model.Booking
+	row := p.database.QueryRow(sqlStatement, id)
+	err := row.Scan(
+		&booking.ID,
+		&booking.UserID,
+		&booking.WorkspaceID,
+		&booking.StartDate,
+		&booking.EndDate,
+		&booking.Cancelled,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &booking, nil
 }
 
 func (p PostgresDBStore) GetAllBookings() ([]*model.Booking, error) {
-	panic("implement me")
+	sqlStatement := `SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings;`
+	return p.queryMultipleBookings(sqlStatement)
 }
 
 func (p PostgresDBStore) GetBookingsByWorkspaceID(id string) ([]*model.Booking, error) {
-	panic("implement me")
+	sqlStatement :=
+		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings WHERE workspace_id=$1;`
+	return p.queryMultipleBookings(sqlStatement, id)
 }
 
 func (p PostgresDBStore) GetBookingsByUserID(id string) ([]*model.Booking, error) {
-	panic("implement me")
+	sqlStatement :=
+		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings WHERE user_id=$1;`
+	return p.queryMultipleBookings(sqlStatement, id)
 }
 
 func (p PostgresDBStore) GetBookingsByDateRange(start time.Time, end time.Time) ([]*model.Booking, error) {
-	panic("implement me")
+	sqlStatement :=
+		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings 
+				WHERE start_time >= $1 AND end_time <= $2;`
+	return p.queryMultipleBookings(sqlStatement, start, end)
 }
 
 func (p PostgresDBStore) CreateBooking(booking *model.Booking) error {
-	panic("implement me")
+	sqlStatement :=
+		`INSERT INTO bookings(id, user_id, workspace_id, start_time, end_time) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	var id string
+	err := p.database.QueryRow(sqlStatement,
+		booking.ID,
+		booking.UserID,
+		booking.WorkspaceID,
+		booking.StartDate,
+		booking.EndDate,
+	).Scan(&id)
+	if err != nil {
+		return err
+	}
+	if id != booking.ID {
+		return CreateError
+	}
+	return nil
 }
 
 func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) error {
-	panic("implement me")
+	sqlStatement :=
+		`UPDATE bookings
+				SET user_id = $2, workspace_id = $3, cancelled = $4, start_time = $5, end_time = $6
+				WHERE id = $1
+				RETURNING id;`
+	var _id string
+	err := p.database.QueryRow(sqlStatement,
+		id,
+		booking.UserID,
+		booking.UserID,
+		booking.Cancelled,
+		booking.StartDate,
+		booking.EndDate,
+	).Scan(&_id)
+	if err != nil {
+		return err
+	}
+	if _id != id {
+		return CreateError
+	}
+	return nil
 }
 
 func (p PostgresDBStore) RemoveBooking(id string) error {
 	panic("implement me")
+}
+
+func (p PostgresDBStore) queryMultipleBookings(sqlStatement string, args ...interface{}) ([]*model.Booking, error) {
+	rows, err := p.database.Query(sqlStatement, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	bookings := make([]*model.Booking, 0)
+	for rows.Next() {
+		var booking model.Booking
+		err := rows.Scan(
+			&booking.ID,
+			&booking.UserID,
+			&booking.WorkspaceID,
+			&booking.StartDate,
+			&booking.EndDate,
+			&booking.Cancelled,
+		)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.GetBookingsByWorkspaceID: %v\n", err)
+		}
+		bookings = append(bookings, &booking)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return bookings, nil
 }
 
 func (p PostgresDBStore) Close() {
@@ -83,8 +225,9 @@ func NewPostgresDataStore(dbUrl string) (*DataStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	dbStore := &PostgresDBStore{database: db}
 	return &DataStore{
-		WorkspaceProvider: &PostgresDBStore{db},
-		BookingProvider:   nil,
+		WorkspaceProvider: dbStore,
+		BookingProvider:   dbStore,
 	}, nil
 }

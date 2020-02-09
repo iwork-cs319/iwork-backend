@@ -236,9 +236,29 @@ func (l LocalDBStore) RemoveBooking(id string) error {
 	return nil
 }
 
+func (l LocalDBStore) Close() {}
+
 func NewLocalDataStore() *DataStore {
-	return &DataStore{
-		WorkspaceProvider: &LocalDBStore{workspaces: map[string]*model.Workspace{
+	localStore := &LocalDBStore{
+		bookings: map[string]*model.Booking{
+			"1": {
+				ID:          "1",
+				WorkspaceID: "1",
+				UserID:      "1",
+				StartDate:   time.Unix(1580869576, 0),
+				EndDate:     time.Unix(1580947199, 0),
+				Cancelled:   false,
+			},
+			"2": {
+				ID:          "2",
+				WorkspaceID: "2",
+				UserID:      "2",
+				StartDate:   time.Unix(1571011200, 0),
+				EndDate:     time.Unix(1571183999, 0),
+				Cancelled:   true,
+			},
+		},
+		workspaces: map[string]*model.Workspace{
 			"1": {
 				ID:    "1",
 				Name:  "Workspace 1",
@@ -259,26 +279,8 @@ func NewLocalDataStore() *DataStore {
 				Name:  "Workspace 6",
 				Props: nil,
 			},
-		}},
-		BookingProvider: &LocalDBStore{bookings: map[string]*model.Booking{
-			"1": {
-				ID:          "1",
-				WorkspaceID: "1",
-				UserID:      "1",
-				StartDate:   time.Unix(1580869576, 0),
-				EndDate:     time.Unix(1580947199, 0),
-				Cancelled:   false,
-			},
-			"2": {
-				ID:          "2",
-				WorkspaceID: "2",
-				UserID:      "2",
-				StartDate:   time.Unix(1571011200, 0),
-				EndDate:     time.Unix(1571183999, 0),
-				Cancelled:   true,
-			},
-		}},
-		OfferingProvider: &LocalDBStore{offerings: map[string]*model.Offering{
+		},
+		offerings: map[string]*model.Offering{
 			"1": {
 				ID:          "1",
 				WorkspaceID: "1",
@@ -287,6 +289,10 @@ func NewLocalDataStore() *DataStore {
 				EndDate:     time.Unix(1580957199, 0),
 				Cancelled:   false,
 			},
-		}},
+		}}
+	return &DataStore{
+		WorkspaceProvider: localStore,
+		BookingProvider:   localStore,
+		OfferingProvider: localStore,
 	}
 }
