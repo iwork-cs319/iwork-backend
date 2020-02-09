@@ -293,6 +293,6 @@ func NewLocalDataStore() *DataStore {
 	return &DataStore{
 		WorkspaceProvider: localStore,
 		BookingProvider:   localStore,
-		OfferingProvider: localStore,
+		OfferingProvider:  localStore,
 	}
 }

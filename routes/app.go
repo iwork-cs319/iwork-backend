@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gorilla/mux"
 	"go-api/db"
+	"go-api/db/postgres"
 	"log"
 	"net/http"
 )
@@ -13,7 +14,7 @@ type App struct {
 }
 
 func NewApp(dbUrl string) *App {
-	store, err := db.NewPostgresDataStore(dbUrl)
+	store, err := postgres.NewPostgresDataStore(dbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,6 +28,7 @@ func (app *App) Setup(port string) error {
 	app.router.HandleFunc("/", app.index)
 	app.RegisterWorkspaceRoutes()
 	app.RegisterBookingRoutes()
+	app.RegisterOfferingRoutes()
 	log.Println("App running at port:", port)
 	return http.ListenAndServe(":"+port, app.router)
 }
