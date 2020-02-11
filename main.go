@@ -12,6 +12,9 @@ func main() {
 		port = "8080"
 		log.Println("Did not find env var PORT, defaulting to 8080")
 	}
-	err := routes.NewApp().Setup(port)
+	dbUrl := os.Getenv("DATABASE_URL")
+	app := routes.NewApp(dbUrl)
+	defer app.Close()
+	err := app.Setup(port)
 	log.Fatal(err)
 }

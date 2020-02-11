@@ -10,9 +10,14 @@ var NotFoundError = errors.New("not found")
 var EmptyError = errors.New("empty")
 
 type DataStore struct {
+	closable
 	WorkspaceProvider workspaceProvider
 	BookingProvider   bookingProvider
 	OfferingProvider  offeringProvider
+}
+
+type closable interface {
+	Close()
 }
 
 type workspaceProvider interface {
