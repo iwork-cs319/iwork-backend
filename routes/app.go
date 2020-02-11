@@ -29,6 +29,8 @@ func (app *App) Setup(port string) error {
 	app.RegisterWorkspaceRoutes()
 	app.RegisterBookingRoutes()
 	app.RegisterOfferingRoutes()
+	app.RegisterUserRoutes()
+	app.RegisterFloorRoutes()
 	log.Println("App running at port:", port)
 	return http.ListenAndServe(":"+port, app.router)
 }

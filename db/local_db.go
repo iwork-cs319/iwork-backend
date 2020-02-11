@@ -9,6 +9,8 @@ type LocalDBStore struct {
 	workspaces map[string]*model.Workspace
 	bookings   map[string]*model.Booking
 	offerings  map[string]*model.Offering
+	users  map[string]*model.User
+	floors  map[string]*model.Floor
 }
 
 func (l LocalDBStore) GetOneOffering(id string) (*model.Offering, error) {
@@ -236,63 +238,146 @@ func (l LocalDBStore) RemoveBooking(id string) error {
 	return nil
 }
 
+func (l LocalDBStore) GetOneUser(id string) (*model.User, error) {
+	u, ok := l.users[id]
+	if !ok {
+		return nil, NotFoundError
+	}
+	return u, nil
+}
+
+func (l LocalDBStore) GetAllUsers() ([]*model.User, error) {
+	list := make([]*model.User, 0)
+	if len(l.users) < 1 {
+		return nil, EmptyError
+	}
+	for _, w := range l.users {
+		list = append(list, w)
+	}
+	return list, nil
+}
+
+//func (l LocalDBStore) CreateUser(user *model.User) error {
+//	l.users[user.ID] = user
+//	return nil
+//}
+
+func (l LocalDBStore) UpdateUser(id string, user *model.User) error {
+	_, ok := l.users[id]
+	if !ok {
+		return NotFoundError
+	}
+	//if user.WorkspaceID != "" {
+	//	l.users[id].WorkspaceID = offering.WorkspaceID
+	//}
+	if user.Name != "" {
+		l.users[id].Name = user.Name
+	}
+	if user.Department != "" {
+		l.users[id].Department = user.Department
+	}
+	//if user.IsAdmin != nil {
+	//	l.users[id].IsAdmin = user.IsAdmin
+	//}
+	return nil
+}
+
+//func (l LocalDBStore) RemoveUser(id string) error {
+//	delete(l.users, id)
+//	return nil
+//}
+
 func (l LocalDBStore) Close() {}
 
-func NewLocalDataStore() *DataStore {
-	localStore := &LocalDBStore{
-		bookings: map[string]*model.Booking{
-			"1": {
-				ID:          "1",
-				WorkspaceID: "1",
-				UserID:      "1",
-				StartDate:   time.Unix(1580869576, 0),
-				EndDate:     time.Unix(1580947199, 0),
-				Cancelled:   false,
-			},
-			"2": {
-				ID:          "2",
-				WorkspaceID: "2",
-				UserID:      "2",
-				StartDate:   time.Unix(1571011200, 0),
-				EndDate:     time.Unix(1571183999, 0),
-				Cancelled:   true,
-			},
-		},
-		workspaces: map[string]*model.Workspace{
-			"1": {
-				ID:    "1",
-				Name:  "Workspace 1",
-				Props: nil,
-			},
-			"2": {
-				ID:    "2",
-				Name:  "Workspace 2",
-				Props: nil,
-			},
-			"3": {
-				ID:    "3",
-				Name:  "Workspace 3",
-				Props: nil,
-			},
-			"6": {
-				ID:    "6",
-				Name:  "Workspace 6",
-				Props: nil,
-			},
-		},
-		offerings: map[string]*model.Offering{
-			"1": {
-				ID:          "1",
-				WorkspaceID: "1",
-				UserID:      "1",
-				StartDate:   time.Unix(1580859576, 0),
-				EndDate:     time.Unix(1580957199, 0),
-				Cancelled:   false,
-			},
-		}}
-	return &DataStore{
-		WorkspaceProvider: localStore,
-		BookingProvider:   localStore,
-		OfferingProvider:  localStore,
-	}
-}
+//func NewLocalDataStore() *DataStore {
+//	localStore := &LocalDBStore{
+//		bookings: map[string]*model.Booking{
+//			"1": {
+//				ID:          "1",
+//				WorkspaceID: "1",
+//				UserID:      "1",
+//				StartDate:   time.Unix(1580869576, 0),
+//				EndDate:     time.Unix(1580947199, 0),
+//				Cancelled:   false,
+//			},
+//			"2": {
+//				ID:          "2",
+//				WorkspaceID: "2",
+//				UserID:      "2",
+//				StartDate:   time.Unix(1571011200, 0),
+//				EndDate:     time.Unix(1571183999, 0),
+//				Cancelled:   true,
+//			},
+//		},
+//		workspaces: map[string]*model.Workspace{
+//			"1": {
+//				ID:    "1",
+//				Name:  "Workspace 1",
+//				Props: nil,
+//			},
+//			"2": {
+//				ID:    "2",
+//				Name:  "Workspace 2",
+//				Props: nil,
+//			},
+//			"3": {
+//				ID:    "3",
+//				Name:  "Workspace 3",
+//				Props: nil,
+//			},
+//			"6": {
+//				ID:    "6",
+//				Name:  "Workspace 6",
+//				Props: nil,
+//			},
+//		},
+//		offerings: map[string]*model.Offering{
+//			"1": {
+//				ID:          "1",
+//				WorkspaceID: "1",
+//				UserID:      "1",
+//				StartDate:   time.Unix(1580859576, 0),
+//				EndDate:     time.Unix(1580957199, 0),
+//				Cancelled:   false,
+//			},
+//		},
+//		users: map[string]*model.User{
+//			"1": {
+//				ID:          "1",
+//				Name: "Prayansh",
+//				Department: "IT",
+//				IsAdmin: false,
+//			},
+//			"2": {
+//				ID:          "2",
+//				Name: "Ming",
+//				Department: "IT",
+//				IsAdmin: false,
+//			},
+//			"3": {
+//				ID:          "3",
+//				Name: "Alex",
+//				Department: "IT",
+//				IsAdmin: true,
+//			},
+//
+//		},
+//		floors: map[string]*model.Floor{
+//			"1": {
+//				ID:          "1",
+//				Name: "Floor 1",
+//			},
+//			"2": {
+//				ID:          "2",
+//				Name: "Floor 99",
+//			},
+//
+//		}}
+//	return &DataStore{
+//		WorkspaceProvider: localStore,
+//		BookingProvider:   localStore,
+//		OfferingProvider:  localStore,
+//		UserProvider:  localStore,
+//		FloorProvider:  localStore,
+//	}
+//}

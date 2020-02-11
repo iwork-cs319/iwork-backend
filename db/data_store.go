@@ -13,6 +13,8 @@ type DataStore struct {
 	closable
 	WorkspaceProvider workspaceProvider
 	BookingProvider   bookingProvider
+	UserProvider   userProvider
+	FloorProvider	floorProvider
 	OfferingProvider  offeringProvider
 }
 
@@ -37,6 +39,22 @@ type bookingProvider interface {
 	CreateBooking(booking *model.Booking) error
 	UpdateBooking(id string, booking *model.Booking) error
 	RemoveBooking(id string) error
+}
+
+type userProvider interface {
+	GetOneUser(id string) (*model.User, error)
+	GetAllUsers() ([]*model.User, error)
+	//CreateUser(user *model.User) error
+	//UpdateUser(id string, user *model.User) error
+	//RemoveUser(id string) error
+}
+
+type floorProvider interface {
+	GetOneFloor(id string) (*model.Floor, error)
+	GetAllFloors() ([]*model.Floor, error)
+	//CreateFloor(floor *model.Floor) error
+	//UpdateFloor(id string, user *model.Floor) error
+	//RemoveFloor(id string) error
 }
 
 type offeringProvider interface {
