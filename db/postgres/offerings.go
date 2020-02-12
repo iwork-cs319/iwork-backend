@@ -93,7 +93,22 @@ func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) err
 }
 
 func (p PostgresDBStore) RemoveOffering(id string) error {
-	panic("implement me")
+	return nil
+//	sqlStatement :=
+//		`DELETE FROM offerings
+//				WHERE id = $1
+//				RETURNING id;`
+//	var _id string
+//	err := p.database.QueryRow(sqlStatement,
+//		id,
+//	).Scan(&_id)
+//	if err != nil {
+//		return err
+//	}
+//	if _id != id {
+//		return CreateError
+//	}
+//	return nil
 }
 
 func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...interface{}) ([]*model.Offering, error) {
