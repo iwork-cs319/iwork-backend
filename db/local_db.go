@@ -9,8 +9,8 @@ type LocalDBStore struct {
 	workspaces map[string]*model.Workspace
 	bookings   map[string]*model.Booking
 	offerings  map[string]*model.Offering
-	users  map[string]*model.User
-	floors  map[string]*model.Floor
+	users      map[string]*model.User
+	floors     map[string]*model.Floor
 }
 
 func (l LocalDBStore) GetOneOffering(id string) (*model.Offering, error) {

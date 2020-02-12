@@ -13,8 +13,8 @@ type DataStore struct {
 	closable
 	WorkspaceProvider workspaceProvider
 	BookingProvider   bookingProvider
-	UserProvider   userProvider
-	FloorProvider	floorProvider
+	UserProvider      userProvider
+	FloorProvider     floorProvider
 	OfferingProvider  offeringProvider
 }
 

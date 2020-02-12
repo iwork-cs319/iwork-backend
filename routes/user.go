@@ -1,12 +1,12 @@
 package routes
 
 import (
-"encoding/json"
-"github.com/gorilla/mux"
-//"go-api/model"
-//"io/ioutil"
-"log"
-"net/http"
+	"encoding/json"
+	"github.com/gorilla/mux"
+	//"go-api/model"
+	//"io/ioutil"
+	"log"
+	"net/http"
 )
 
 func (app *App) RegisterUserRoutes() {
@@ -138,4 +138,3 @@ func (app *App) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 //	}
 //	w.WriteHeader(http.StatusOK)
 //}
-
