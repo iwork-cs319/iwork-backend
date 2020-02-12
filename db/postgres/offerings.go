@@ -92,7 +92,8 @@ func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) err
 	return nil
 }
 
-//func (p PostgresDBStore) RemoveOffering(id string) error {
+func (p PostgresDBStore) RemoveOffering(id string) error {
+	return nil
 //	sqlStatement :=
 //		`DELETE FROM offerings
 //				WHERE id = $1
@@ -108,7 +109,7 @@ func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) err
 //		return CreateError
 //	}
 //	return nil
-//}
+}
 
 func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...interface{}) ([]*model.Offering, error) {
 	rows, err := p.database.Query(sqlStatement, args...)

@@ -2,9 +2,9 @@ package db
 
 import (
 	"errors"
+	"go-api/model"
 	"time"
 )
-import "go-api/model"
 
 var NotFoundError = errors.New("not found")
 var EmptyError = errors.New("empty")
