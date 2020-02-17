@@ -27,8 +27,9 @@ type User struct {
 }
 
 type Floor struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	DownloadURL string `json:"download_url"`
 }
 
 type Offering struct {

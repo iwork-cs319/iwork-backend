@@ -1,0 +1,103 @@
+package db
+
+import (
+	"fmt"
+	"golang.org/x/net/context"
+	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/option"
+	"io"
+	"io/ioutil"
+	"log"
+)
+
+type Drive struct {
+	srv *drive.Service
+}
+
+const (
+	FloorPlanFolderName = "floor-plans"
+	RootFolderName      = "root"
+)
+
+func NewDriveClient(filePath string) (*Drive, error) {
+	b, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Printf("Unable to read credentials.json file. Err: %v\n", err)
+		return nil, err
+	}
+
+	service, err := drive.NewService(context.Background(), option.WithCredentialsJSON(b))
+
+	if err != nil {
+		log.Printf("Cannot create the Google Drive service: %v\n", err)
+		return nil, err
+	}
+
+	return &Drive{
+		srv: service,
+	}, err
+}
+
+func (d Drive) createDir(name string, parentId string) (*drive.File, error) {
+	dir := &drive.File{
+		Name:     name,
+		MimeType: "application/vnd.google-apps.folder",
+		Parents:  []string{parentId},
+	}
+
+	file, err := d.srv.Files.Create(dir).Do()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (d Drive) createFile(name string, mimeType string, content io.Reader, parentId string) (*drive.File, error) {
+	f := &drive.File{
+		MimeType: mimeType,
+		Name:     name,
+		Parents:  []string{parentId},
+	}
+	file, err := d.srv.Files.Create(f).Media(content).Do()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (d Drive) updatePermissionToPublic(id string) error {
+	permissionData := &drive.Permission{
+		Type: "anyone",
+		Role: "reader",
+		//AllowFileDiscovery: true,
+	}
+	_, err := d.srv.Permissions.Create(id, permissionData).Do()
+	if err != nil {
+		log.Println("Error updating permissions: " + err.Error())
+		return err
+	}
+	return nil
+}
+
+func (d Drive) UploadFloorPlan(name string, content io.Reader) (string, error) {
+	dir, err := d.createDir(FloorPlanFolderName, RootFolderName)
+	if err != nil {
+		log.Println("Failed to create folder: " + err.Error())
+		return "", err
+	}
+	file, err := d.createFile(name, "image/jpg", content, dir.Id)
+	if err != nil {
+		log.Printf("Could not create file: %v\n", err)
+		return "", err
+	}
+	err = d.updatePermissionToPublic(file.Id)
+	if err != nil {
+		log.Println("Failed to update permissions: " + err.Error())
+		return "", err
+	}
+	return file.Id, nil
+}

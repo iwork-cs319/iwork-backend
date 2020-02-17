@@ -11,16 +11,24 @@ import (
 type App struct {
 	router *mux.Router
 	store  *db.DataStore
+	gDrive *db.Drive
 }
 
 func NewApp(dbUrl string) *App {
 	store, err := postgres.NewPostgresDataStore(dbUrl)
 	if err != nil {
+		log.Println("Failed to connect to database")
+		log.Fatal(err)
+	}
+	driveClient, err := db.NewDriveClient("resources/IWork-cf6191e69fcd.json")
+	if err != nil {
+		log.Println("Failed to connect to google drive")
 		log.Fatal(err)
 	}
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
+		gDrive: driveClient,
 	}
 }
 

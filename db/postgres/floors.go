@@ -24,22 +24,19 @@ func (p PostgresDBStore) GetAllFloors() ([]*model.Floor, error) {
 	return p.queryMultipleFloors(sqlStatement)
 }
 
-//func (p PostgresDBStore) CreateFloor(floor *model.Floor) error {
-//	sqlStatement :=
-//		`INSERT INTO floors(id, name) VALUES ($1, $2) RETURNING id`
-//	var id string
-//	err := p.database.QueryRow(sqlStatement,
-//		floor.ID,
-//		floor.Name,
-//	).Scan(&id)
-//	if err != nil {
-//		return err
-//	}
-//	if id != floor.ID {
-//		return CreateError
-//	}
-//	return nil
-//}
+func (p PostgresDBStore) CreateFloor(floor *model.Floor) (string, error) {
+	sqlStatement :=
+		`INSERT INTO floors(name, download_url) VALUES ($1, $2) RETURNING id`
+	var id string
+	err := p.database.QueryRow(sqlStatement,
+		floor.Name,
+		floor.DownloadURL,
+	).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
 
 //func (p PostgresDBStore) UpdateFloor(id string, floor *model.Floor) error {
 //	sqlStatement :=
