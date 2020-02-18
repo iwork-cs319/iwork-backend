@@ -28,6 +28,7 @@ type workspaceProvider interface {
 	CreateWorkspace(workspace *model.Workspace) (string, error)
 	RemoveWorkspace(id string) error
 	GetAllWorkspaces() ([]*model.Workspace, error)
+	FindAvailability(floorId string, start time.Time, end time.Time) ([]string, error)
 }
 
 type bookingProvider interface {
