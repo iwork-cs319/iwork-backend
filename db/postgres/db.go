@@ -5,7 +5,6 @@ import (
 	"errors"
 	_ "github.com/lib/pq"
 	"go-api/db"
-	"log"
 )
 
 type PostgresDBStore struct {
@@ -15,7 +14,6 @@ type PostgresDBStore struct {
 var CreateError = errors.New("create error")
 
 func (p PostgresDBStore) Close() {
-	log.Print(p.database)
 	p.database.Close()
 }
 
