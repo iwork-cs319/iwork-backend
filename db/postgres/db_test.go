@@ -14,3 +14,8 @@ func CreateTestDBConn(t *testing.T) *db.DataStore {
 	}
 	return store
 }
+
+func TestDBCreate(t *testing.T) {
+	conn := CreateTestDBConn(t)
+	conn.Close()
+}
