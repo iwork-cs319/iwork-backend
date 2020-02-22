@@ -10,7 +10,7 @@ var NotFoundError = errors.New("not found")
 var EmptyError = errors.New("empty")
 
 type DataStore struct {
-	closable
+	Closable
 	WorkspaceProvider workspaceProvider
 	BookingProvider   bookingProvider
 	UserProvider      userProvider
@@ -18,7 +18,7 @@ type DataStore struct {
 	OfferingProvider  offeringProvider
 }
 
-type closable interface {
+type Closable interface {
 	Close()
 }
 
@@ -28,6 +28,7 @@ type workspaceProvider interface {
 	CreateWorkspace(workspace *model.Workspace) (string, error)
 	RemoveWorkspace(id string) error
 	GetAllWorkspaces() ([]*model.Workspace, error)
+	FindAvailability(floorId string, start time.Time, end time.Time) ([]string, error)
 }
 
 type bookingProvider interface {

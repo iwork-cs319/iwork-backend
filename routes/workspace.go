@@ -4,12 +4,18 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"go-api/model"
+	"go-api/utils"
 	"io/ioutil"
 	"log"
 	"net/http"
 )
 
 func (app *App) RegisterWorkspaceRoutes() {
+	app.router.HandleFunc("/workspaces/available", app.GetAvailability).
+		Methods("GET").
+		Queries("floor", "{floor}").
+		Queries("start", "{start:[0-9]+}").
+		Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/workspaces", app.CreateWorkspace).Methods("POST")
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
 	app.router.HandleFunc("/workspaces", app.GetAllWorkspaces).Methods("GET")
@@ -121,4 +127,35 @@ func (app *App) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (app *App) GetAvailability(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	start := queryParams["start"][0]
+	end := queryParams["end"][0]
+	floorId := queryParams["floor"][0]
+	if floorId == "" {
+		log.Printf("App.GetAvailability - empty floor id param")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
+	endTime, errEnd := utils.TimeStampToTime(end)
+	if errStart != nil {
+		log.Printf("App.GetAvailability - empty start time param: %v", errStart)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if errEnd != nil {
+		log.Printf("App.GetAvailability - empty end time param: %v", errEnd)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	workspaceIds, err := app.store.WorkspaceProvider.FindAvailability(floorId, startTime, endTime)
+	if err != nil {
+		log.Printf("App.GetOfferingsByDateRange - error getting ids from provider %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(workspaceIds)
 }

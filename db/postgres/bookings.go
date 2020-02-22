@@ -89,7 +89,22 @@ func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) error 
 }
 
 func (p PostgresDBStore) RemoveBooking(id string) error {
-	panic("implement me")
+	sqlStatement :=
+		`UPDATE bookings
+				SET cancelled = false
+				WHERE id = $1
+				RETURNING id;`
+	var _id string
+	err := p.database.QueryRow(sqlStatement,
+		id,
+	).Scan(&_id)
+	if err != nil {
+		return err
+	}
+	if _id != id {
+		return CreateError
+	}
+	return nil
 }
 
 func (p PostgresDBStore) queryMultipleBookings(sqlStatement string, args ...interface{}) ([]*model.Booking, error) {

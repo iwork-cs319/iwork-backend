@@ -17,6 +17,9 @@ This is the backend REST API for booking/viewing workspaces
 ### DELETE /workspaces/:id
 - Delete workspace object with `id`
 
+### GET /workspaces/available?start={start_timestamp}&end={end_timestamp}&floor={floor_id}
+- Get ids for all workspaces available to book between `start_time` and `end_time`, where `start_time` and `end_time` are unix timestamps.
+
 ## Bookings / Offerings (same syntax)
 ### GET /bookings
 - Get All booking objects
@@ -30,7 +33,7 @@ This is the backend REST API for booking/viewing workspaces
 ### GET /bookings/users/:id
 - Get booking object with `user_id`
 
-### GET /bookings/users/start/:start/end/:end
+### GET /bookings/users?start={start_timestamp}&end={end_timestamp}
 - Get booking object with `start_time` and `end_time`, where `start_time` and `end_time` are unix timestamps.
 
 ### POST /bookings

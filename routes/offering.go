@@ -119,12 +119,12 @@ func (app *App) GetOfferingsByDateRange(w http.ResponseWriter, r *http.Request) 
 	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
 	endTime, errEnd := utils.TimeStampToTime(end)
 	if errStart != nil {
-		log.Printf("App.GetOfferingsByDateRange - error getting offerings by date range from provider %v", errStart)
+		log.Printf("App.GetOfferingsByDateRange - empty start time param: %v", errStart)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if errEnd != nil {
-		log.Printf("App.GetOfferingsByDateRange - error getting offerings by date range from provider %v", errEnd)
+		log.Printf("App.GetOfferingsByDateRange - empty end time param: %v", errEnd)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
