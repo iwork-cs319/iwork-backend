@@ -39,17 +39,14 @@ func (p PostgresDBStore) UpdateWorkspace(id string, workspace *model.Workspace) 
 	return nil
 }
 
-func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) error {
-	sqlStatement := `INSERT INTO workspaces(id, name, floor_id) VALUES ($1, $2, $3) RETURNING id`
+func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) (string, error) {
+	sqlStatement := `INSERT INTO workspaces(name, floor_id) VALUES ($1, $2) RETURNING id`
 	var id string
-	err := p.database.QueryRow(sqlStatement, workspace.ID, workspace.Name, workspace.Floor).Scan(&id)
+	err := p.database.QueryRow(sqlStatement, workspace.Name, workspace.Floor).Scan(&id)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if id != workspace.ID {
-		return CreateError
-	}
-	return nil
+	return id, nil
 }
 
 func (p PostgresDBStore) RemoveWorkspace(id string) error {

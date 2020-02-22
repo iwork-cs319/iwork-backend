@@ -33,12 +33,13 @@ func (app *App) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.store.WorkspaceProvider.CreateWorkspace(&newWorkspace)
+	id, err := app.store.WorkspaceProvider.CreateWorkspace(&newWorkspace)
 	if err != nil {
 		log.Printf("App.CreateWorkspace - error creating workspace %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	newWorkspace.ID = id
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newWorkspace)

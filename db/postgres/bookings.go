@@ -48,24 +48,20 @@ func (p PostgresDBStore) GetBookingsByDateRange(start time.Time, end time.Time) 
 	return p.queryMultipleBookings(sqlStatement, start, end)
 }
 
-func (p PostgresDBStore) CreateBooking(booking *model.Booking) error {
+func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
 	sqlStatement :=
-		`INSERT INTO bookings(id, user_id, workspace_id, start_time, end_time) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+		`INSERT INTO bookings(user_id, workspace_id, start_time, end_time) VALUES ($1, $2, $3, $4) RETURNING id`
 	var id string
 	err := p.database.QueryRow(sqlStatement,
-		booking.ID,
 		booking.UserID,
 		booking.WorkspaceID,
 		booking.StartDate,
 		booking.EndDate,
 	).Scan(&id)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if id != booking.ID {
-		return CreateError
-	}
-	return nil
+	return id, nil
 }
 
 func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) error {

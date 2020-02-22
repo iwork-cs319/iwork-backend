@@ -37,12 +37,13 @@ func (app *App) CreateOffering(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.store.OfferingProvider.CreateOffering(&newOffering)
+	id, err := app.store.OfferingProvider.CreateOffering(&newOffering)
 	if err != nil {
 		log.Printf("App.CreateOffering - error creating offering %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	newOffering.ID = id
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newOffering)

@@ -37,12 +37,13 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.store.BookingProvider.CreateBooking(&newBooking)
+	id, err := app.store.BookingProvider.CreateBooking(&newBooking)
 	if err != nil {
 		log.Printf("App.CreateBooking - error creating booking %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	newBooking.ID = id
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newBooking)

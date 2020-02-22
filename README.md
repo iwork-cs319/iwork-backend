@@ -17,7 +17,7 @@ This is the backend REST API for booking/viewing workspaces
 ### DELETE /workspaces/:id
 - Delete workspace object with `id`
 
-## Bookings
+## Bookings / Offerings (same syntax)
 ### GET /bookings
 - Get All booking objects
 
@@ -41,3 +41,13 @@ This is the backend REST API for booking/viewing workspaces
 
 ### DELETE /booking/:id
 - Delete booking object with `id`
+
+## Floor
+### GET /floors
+- Get All floors objects
+
+### GET /floors/:id
+- Get floors object with `id`
+
+### POST /floors
+- Create a floor object. You have to send a `multipart/form-data` with `image=<image-data>` and `name=<floor-name>`

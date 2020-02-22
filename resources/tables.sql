@@ -6,44 +6,44 @@ DROP TABLE IF EXISTS floors;
 
 CREATE TABLE floors
 (
-    id   VARCHAR(16) PRIMARY KEY,
-    name VARCHAR(32) NOT NULL
+    id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name         VARCHAR(32) NOT NULL,
+    download_url TEXT        NOT NULL
 );
-
-CREATE TABLE workspaces
-(
-    id       VARCHAR(16) PRIMARY KEY,
-    floor_id VARCHAR(16) REFERENCES floors (id) NOT NULL,
-    user_id  VARCHAR(16) REFERENCES users (id),
-    name     VARCHAR(32)                        NOT NULL,
-    locked   BOOLEAN DEFAULT FALSE
-);
-
 
 CREATE TABLE users
 (
-    id         VARCHAR(16) PRIMARY KEY,
+    id         uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     name       VARCHAR(32) NOT NULL,
     department VARCHAR(32) NOT NULL,
     is_admin   BOOLEAN
 );
 
+CREATE TABLE workspaces
+(
+    id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    floor_id uuid REFERENCES floors (id) NOT NULL,
+    user_id  uuid REFERENCES users (id),
+    name     VARCHAR(32)                        NOT NULL,
+    locked   BOOLEAN          DEFAULT FALSE
+);
+
 CREATE TABLE bookings
 (
-    id           VARCHAR(16) PRIMARY KEY,
-    user_id      VARCHAR(16) REFERENCES users (id)      NOT NULL,
-    workspace_id VARCHAR(16) REFERENCES workspaces (id) NOT NULL,
-    cancelled    BOOLEAN DEFAULT FALSE,
+    id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id      uuid REFERENCES users (id)      NOT NULL,
+    workspace_id uuid REFERENCES workspaces (id) NOT NULL,
+    cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                            NOT NULL,
     end_time     TIMESTAMPTZ                            NOT NULL
 );
 
 CREATE TABLE offerings
 (
-    id           VARCHAR(16) PRIMARY KEY,
-    user_id      VARCHAR(16) REFERENCES users (id)      NOT NULL,
-    workspace_id VARCHAR(16) REFERENCES workspaces (id) NOT NULL,
-    cancelled    BOOLEAN DEFAULT FALSE,
+    id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id      uuid REFERENCES users (id)      NOT NULL,
+    workspace_id uuid REFERENCES workspaces (id) NOT NULL,
+    cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                            NOT NULL,
     end_time     TIMESTAMPTZ                            NOT NULL
 );
