@@ -6,12 +6,13 @@ import (
 )
 
 func (p PostgresDBStore) GetOneFloor(id string) (*model.Floor, error) {
-	sqlStatement := `SELECT id, name FROM floors WHERE id=$1;`
+	sqlStatement := `SELECT id, name, download_url FROM floors WHERE id=$1;`
 	var floor model.Floor
 	row := p.database.QueryRow(sqlStatement, id)
 	err := row.Scan(
 		&floor.ID,
 		&floor.Name,
+		&floor.DownloadURL,
 	)
 	if err != nil {
 		return nil, err
