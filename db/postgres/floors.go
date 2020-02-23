@@ -20,7 +20,7 @@ func (p PostgresDBStore) GetOneFloor(id string) (*model.Floor, error) {
 }
 
 func (p PostgresDBStore) GetAllFloors() ([]*model.Floor, error) {
-	sqlStatement := `SELECT id, name FROM floors;`
+	sqlStatement := `SELECT id, name, download_url FROM floors;`
 	return p.queryMultipleFloors(sqlStatement)
 }
 
@@ -88,6 +88,7 @@ func (p PostgresDBStore) queryMultipleFloors(sqlStatement string, args ...interf
 		err := rows.Scan(
 			&floor.ID,
 			&floor.Name,
+			&floor.DownloadURL,
 		)
 		if err != nil {
 			// dont cause panic here, log it
