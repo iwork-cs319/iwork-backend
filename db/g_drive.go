@@ -1,12 +1,10 @@
 package db
 
 import (
-	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 	"io"
-	"io/ioutil"
 	"log"
 )
 
@@ -19,14 +17,11 @@ const (
 	RootFolderName      = "root"
 )
 
-func NewDriveClient(filePath string) (*Drive, error) {
-	b, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		fmt.Printf("Unable to read credentials.json file. Err: %v\n", err)
-		return nil, err
-	}
-
-	service, err := drive.NewService(context.Background(), option.WithCredentialsJSON(b))
+func NewDriveClient(driveConfigJSON string) (*Drive, error) {
+	service, err := drive.NewService(
+		context.Background(),
+		option.WithCredentialsJSON([]byte(driveConfigJSON)),
+	)
 
 	if err != nil {
 		log.Printf("Cannot create the Google Drive service: %v\n", err)

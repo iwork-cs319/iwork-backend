@@ -14,13 +14,13 @@ type App struct {
 	gDrive *db.Drive
 }
 
-func NewApp(dbUrl string) *App {
+func NewApp(dbUrl, gDriveConfig string) *App {
 	store, err := postgres.NewPostgresDataStore(dbUrl)
 	if err != nil {
 		log.Println("Failed to connect to database")
 		log.Fatal(err)
 	}
-	driveClient, err := db.NewDriveClient("resources/IWork-cf6191e69fcd.json")
+	driveClient, err := db.NewDriveClient(gDriveConfig)
 	if err != nil {
 		log.Println("Failed to connect to google drive")
 		log.Fatal(err)
@@ -33,14 +33,19 @@ func NewApp(dbUrl string) *App {
 }
 
 func (app *App) Setup(port string) error {
+	app.router.StrictSlash(true)
 	app.router.HandleFunc("/", app.index)
+	app.RegisterRoutes()
+	log.Println("App running at port:", port)
+	return http.ListenAndServe(":"+port, app.router)
+}
+
+func (app *App) RegisterRoutes() {
 	app.RegisterWorkspaceRoutes()
 	app.RegisterBookingRoutes()
 	app.RegisterOfferingRoutes()
 	app.RegisterUserRoutes()
 	app.RegisterFloorRoutes()
-	log.Println("App running at port:", port)
-	return http.ListenAndServe(":"+port, app.router)
 }
 
 func (app *App) Close() {

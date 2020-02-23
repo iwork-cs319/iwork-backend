@@ -13,7 +13,8 @@ func main() {
 		log.Println("Did not find env var PORT, defaulting to 8080")
 	}
 	dbUrl := os.Getenv("DATABASE_URL")
-	app := routes.NewApp(dbUrl)
+	gDriveCredentials := os.Getenv("G_DRIVE_CREDENTIALS")
+	app := routes.NewApp(dbUrl, gDriveCredentials)
 	defer app.Close()
 	err := app.Setup(port)
 	log.Fatal(err)
