@@ -16,9 +16,9 @@ func buildDriveDirectLink(id string) string {
 const MaxFileSize = 6 << 20 // 6 MB
 
 func (app *App) RegisterFloorRoutes() {
-	app.router.HandleFunc("/floors/", app.CreateFloor).Methods("POST")
+	app.router.HandleFunc("/floors", app.CreateFloor).Methods("POST")
 	app.router.HandleFunc("/floors/{id}", app.GetOneFloor).Methods("GET")
-	app.router.HandleFunc("/floors/", app.GetAllFloors).Methods("GET")
+	app.router.HandleFunc("/floors", app.GetAllFloors).Methods("GET")
 	//app.router.HandleFunc("/floors/{id}", app.UpdateFloor).Methods("PATCH")
 	//app.router.HandleFunc("/floors/{id}", app.DeleteFloor).Methods("DELETE")
 }
