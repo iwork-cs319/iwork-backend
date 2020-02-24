@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"go-api/db"
 	"go-api/db/postgres"
@@ -33,11 +34,11 @@ func NewApp(dbUrl, gDriveConfig string) *App {
 }
 
 func (app *App) Setup(port string) error {
-	app.router.StrictSlash(true)
 	app.router.HandleFunc("/", app.index)
 	app.RegisterRoutes()
 	log.Println("App running at port:", port)
-	return http.ListenAndServe(":"+port, app.router)
+	corsObj := handlers.AllowedOrigins([]string{"*"})
+	return http.ListenAndServe(":"+port, handlers.CORS(corsObj)(app.router))
 }
 
 func (app *App) RegisterRoutes() {
