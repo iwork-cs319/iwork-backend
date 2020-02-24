@@ -90,7 +90,6 @@ func (app *App) GetOneFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	//w.Header().Add("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(floor)
 }
 
