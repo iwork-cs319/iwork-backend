@@ -33,10 +33,15 @@ type workspaceProvider interface {
 
 type bookingProvider interface {
 	GetOneBooking(id string) (*model.Booking, error)
+	GetOneExpandedBooking(id string) (*model.ExpandedBooking, error)
 	GetAllBookings() ([]*model.Booking, error)
+	GetAllExpandedBookings() ([]*model.ExpandedBooking, error)
 	GetBookingsByWorkspaceID(id string) ([]*model.Booking, error)
+	GetExpandedBookingsByWorkspaceID(id string) ([]*model.ExpandedBooking, error)
 	GetBookingsByUserID(id string) ([]*model.Booking, error)
+	GetExpandedBookingsByUserID(id string) ([]*model.ExpandedBooking, error)
 	GetBookingsByDateRange(start time.Time, end time.Time) ([]*model.Booking, error)
+	GetExpandedBookingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedBooking, error)
 	CreateBooking(booking *model.Booking) (string, error)
 	UpdateBooking(id string, booking *model.Booking) error
 	RemoveBooking(id string) error

@@ -8,15 +8,20 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 func (app *App) RegisterBookingRoutes() {
 	app.router.HandleFunc("/bookings", app.CreateBooking).Methods("POST")
-	app.router.HandleFunc("/bookings/{id}", app.GetOneBooking).Methods("GET")
-	app.router.HandleFunc("/bookings/workspaces/{workspace_id}", app.GetBookingsByWorkspaceID).Methods("GET")
-	app.router.HandleFunc("/bookings/users/{user_id}", app.GetBookingsByUserID).Methods("GET")
+	app.router.HandleFunc("/bookings/{id}", app.GetOneBooking).Methods("GET").Queries("expand", "{expand}")
+	app.router.HandleFunc("/bookings/{id}", app.GetOneBooking).Methods("GET") // Handles when Query is empty
+	app.router.HandleFunc("/bookings/workspaces/{workspace_id}", app.GetBookingsByWorkspaceID).Methods("GET").Queries("expand", "{expand}")
+	app.router.HandleFunc("/bookings/workspaces/{workspace_id}", app.GetBookingsByWorkspaceID).Methods("GET") // Handles when Query is empty
+	app.router.HandleFunc("/bookings/users/{user_id}", app.GetBookingsByUserID).Methods("GET").Queries("expand", "{expand}")
+	app.router.HandleFunc("/bookings/users/{user_id}", app.GetBookingsByUserID).Methods("GET") // Handles when Query is empty
 	app.router.HandleFunc("/bookings", app.GetBookingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
-	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET")
+	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET").Queries("expand", "{expand}")
+	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET") // Handles when Query is empty
 	app.router.HandleFunc("/bookings/{id}", app.UpdateBooking).Methods("PATCH")
 	app.router.HandleFunc("/bookings/{id}", app.RemoveBooking).Methods("DELETE")
 }
@@ -24,6 +29,7 @@ func (app *App) RegisterBookingRoutes() {
 func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	var newBooking model.Booking
 	reqBody, err := ioutil.ReadAll(r.Body)
+
 	if err != nil {
 		log.Printf("App.CreateBooking - error reading request body %v", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -51,31 +57,73 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) GetOneBooking(w http.ResponseWriter, r *http.Request) {
 	bookingID := mux.Vars(r)["id"]
-
 	if bookingID == "" {
 		log.Printf("App.GetOneBooking - empty booking id")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	booking, err := app.store.BookingProvider.GetOneBooking(bookingID)
-	if err != nil {
-		log.Printf("App.GetOneBooking - error getting booking from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(booking)
+	if expandBool == true {
+		expandedBooking, err := app.store.BookingProvider.GetOneExpandedBooking(bookingID)
+		if err != nil {
+			log.Printf("App.GetOneExpandedBooking - error getting expanded booking from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(expandedBooking)
+	} else {
+		booking, err := app.store.BookingProvider.GetOneBooking(bookingID)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error getting booking from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(booking)
+	}
 }
 
 func (app *App) GetAllBookings(w http.ResponseWriter, r *http.Request) {
-	bookings, err := app.store.BookingProvider.GetAllBookings()
-	if err != nil {
-		log.Printf("App.GetAllBookings - error getting all bookings from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(bookings)
+	if expandBool == true {
+		expandedBookings, err := app.store.BookingProvider.GetAllExpandedBookings()
+		if err != nil {
+			log.Printf("App.GetAllExpandedBookings - error getting all expanded bookings from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(expandedBookings)
+	} else {
+		bookings, err := app.store.BookingProvider.GetAllBookings()
+		if err != nil {
+			log.Printf("App.GetAllBookings - error getting all bookings from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(bookings)
+	}
 }
 
 func (app *App) GetBookingsByWorkspaceID(w http.ResponseWriter, r *http.Request) {
@@ -86,13 +134,35 @@ func (app *App) GetBookingsByWorkspaceID(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	bookings, err := app.store.BookingProvider.GetBookingsByWorkspaceID(workspaceID)
-	if err != nil {
-		log.Printf("App.GetBookingsByWorkspaceID - error getting bookings by workspaceID from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(bookings)
+	if expandBool == true {
+		expandedBooking, err := app.store.BookingProvider.GetExpandedBookingsByWorkspaceID(workspaceID)
+		if err != nil {
+			log.Printf("App.GetExpandedBookingsByWorkspaceID - error getting expanded bookings by workspaceID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(expandedBooking)
+	} else {
+		bookings, err := app.store.BookingProvider.GetBookingsByWorkspaceID(workspaceID)
+		if err != nil {
+			log.Printf("App.GetBookingsByWorkspaceID - error getting bookings by workspaceID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(bookings)
+	}
 }
 
 func (app *App) GetBookingsByUserID(w http.ResponseWriter, r *http.Request) {
@@ -103,13 +173,35 @@ func (app *App) GetBookingsByUserID(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	bookings, err := app.store.BookingProvider.GetBookingsByUserID(userID)
-	if err != nil {
-		log.Printf("App.GetBookingsByUserID - error getting bookings by userID from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(bookings)
+	if expandBool == true {
+		expandedBooking, err := app.store.BookingProvider.GetExpandedBookingsByUserID(userID)
+		if err != nil {
+			log.Printf("App.GetExpandedBookingsByUserID - error getting expanded bookings by userID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(expandedBooking)
+	} else {
+		bookings, err := app.store.BookingProvider.GetBookingsByUserID(userID)
+		if err != nil {
+			log.Printf("App.GetBookingsByUserID - error getting bookings by userID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(bookings)
+	}
 }
 
 func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
@@ -128,13 +220,35 @@ func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	bookings, err := app.store.BookingProvider.GetBookingsByDateRange(startTime, endTime) // TODO: Send parsed instead?
-	if err != nil {
-		log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(bookings)
+	if expandBool == true {
+		expandedBooking, err := app.store.BookingProvider.GetExpandedBookingsByDateRange(startTime, endTime)
+		if err != nil {
+			log.Printf("App.GetExpandedBookingsByDateRange - error getting expanded bookings by date range from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(expandedBooking)
+	} else {
+		bookings, err := app.store.BookingProvider.GetBookingsByDateRange(startTime, endTime)
+		if err != nil {
+			log.Printf("App.GetBookingsByDateRange - error getting bookings by date range from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(bookings)
+	}
 }
 
 func (app *App) UpdateBooking(w http.ResponseWriter, r *http.Request) {
