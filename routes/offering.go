@@ -8,14 +8,20 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 func (app *App) RegisterOfferingRoutes() {
 	app.router.HandleFunc("/offerings", app.CreateOffering).Methods("POST")
+	app.router.HandleFunc("/offerings/{id}", app.GetOneOffering).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/offerings/{id}", app.GetOneOffering).Methods("GET")
+	app.router.HandleFunc("/offerings/workspaces/{workspace_id}", app.GetOfferingsByWorkspaceID).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/offerings/workspaces/{workspace_id}", app.GetOfferingsByWorkspaceID).Methods("GET")
+	app.router.HandleFunc("/offerings/users/{user_id}", app.GetOfferingsByUserID).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/offerings/users/{user_id}", app.GetOfferingsByUserID).Methods("GET")
+	app.router.HandleFunc("/offerings", app.GetOfferingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}").Queries("expand", "{expand}")
 	app.router.HandleFunc("/offerings", app.GetOfferingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
+	app.router.HandleFunc("/offerings", app.GetAllOfferings).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/offerings", app.GetAllOfferings).Methods("GET")
 	app.router.HandleFunc("/offerings/{id}", app.UpdateOffering).Methods("PATCH")
 	app.router.HandleFunc("/offerings/{id}", app.RemoveOffering).Methods("DELETE")
@@ -58,24 +64,67 @@ func (app *App) GetOneOffering(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	offering, err := app.store.OfferingProvider.GetOneOffering(offeringID)
-	if err != nil {
-		log.Printf("App.GetOneOffering - error getting offering from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneOffering - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(offering)
+	if expandBool == true {
+		expandedOffering, err := app.store.OfferingProvider.GetOneExpandedOffering(offeringID)
+		if err != nil {
+			log.Printf("App.GetOneExpandedOffering - error getting expanded booking from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(expandedOffering)
+	} else {
+		offering, err := app.store.OfferingProvider.GetOneOffering(offeringID)
+		if err != nil {
+			log.Printf("App.GetOneOffering - error getting offering from provider %v", err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(offering)
+	}
 }
 
 func (app *App) GetAllOfferings(w http.ResponseWriter, r *http.Request) {
-	offerings, err := app.store.OfferingProvider.GetAllOfferings()
-	if err != nil {
-		log.Printf("App.GetAllOfferings - error getting all offerings from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetAllOfferings - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(offerings)
+	if expandBool == true {
+		expandedOfferings, err := app.store.OfferingProvider.GetAllExpandedOfferings()
+		if err != nil {
+			log.Printf("App.GetAllExpandedOfferings - error getting all expanded offerings from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(expandedOfferings)
+	} else {
+		offerings, err := app.store.OfferingProvider.GetAllOfferings()
+		if err != nil {
+			log.Printf("App.GetAllOfferings - error getting all offerings from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(offerings)
+	}
 }
 
 func (app *App) GetOfferingsByWorkspaceID(w http.ResponseWriter, r *http.Request) {
@@ -86,13 +135,34 @@ func (app *App) GetOfferingsByWorkspaceID(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	offerings, err := app.store.OfferingProvider.GetOfferingsByWorkspaceID(workspaceID)
-	if err != nil {
-		log.Printf("App.GetOfferingsByWorkspaceID - error getting offerings by workspaceID from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(offerings)
+	if expandBool == true {
+		expandedOfferings, err := app.store.OfferingProvider.GetExpandedOfferingsByWorkspaceID(workspaceID)
+		if err != nil {
+			log.Printf("App.GetExpandedOfferingsByWorkspaceID - error getting expanded offerings by workspaceID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(expandedOfferings)
+	} else {
+		offerings, err := app.store.OfferingProvider.GetOfferingsByWorkspaceID(workspaceID)
+		if err != nil {
+			log.Printf("App.GetOfferingsByWorkspaceID - error getting offerings by workspaceID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(offerings)
+	}
 }
 
 func (app *App) GetOfferingsByUserID(w http.ResponseWriter, r *http.Request) {
@@ -103,13 +173,34 @@ func (app *App) GetOfferingsByUserID(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	offerings, err := app.store.OfferingProvider.GetOfferingsByUserID(userID)
-	if err != nil {
-		log.Printf("App.GetOfferingsByUserID - error getting offerings by userID from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(offerings)
+	if expandBool == true {
+		expandedOfferings, err := app.store.OfferingProvider.GetExpandedOfferingsByUserID(userID)
+		if err != nil {
+			log.Printf("App.GetExpandedOfferingsByUserID - error getting expanded offerings by userID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(expandedOfferings)
+	} else {
+		offerings, err := app.store.OfferingProvider.GetOfferingsByUserID(userID)
+		if err != nil {
+			log.Printf("App.GetOfferingsByUserID - error getting offerings by userID from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(offerings)
+	}
 }
 
 func (app *App) GetOfferingsByDateRange(w http.ResponseWriter, r *http.Request) {
@@ -128,13 +219,34 @@ func (app *App) GetOfferingsByDateRange(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	offerings, err := app.store.OfferingProvider.GetOfferingsByDateRange(startTime, endTime) // TODO: Send parsed instead?
-	if err != nil {
-		log.Printf("App.GetOfferingsByDateRange - error getting offerings by date range from provider %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	exp := r.FormValue("expand")
+	var expandBool = false
+	if exp != "" {
+		expand, err := strconv.ParseBool(exp)
+		if err != nil {
+			log.Printf("App.GetOneBooking - error converting string to boolean from query parameter %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expandBool = expand
 	}
-	json.NewEncoder(w).Encode(offerings)
+	if expandBool == true {
+		expandedOfferings, err := app.store.OfferingProvider.GetExpandedOfferingsByDateRange(startTime, endTime)
+		if err != nil {
+			log.Printf("App.GetExpandedOfferingsByDateRange - error getting expanded offerings by date range from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(expandedOfferings)
+	} else {
+		offerings, err := app.store.OfferingProvider.GetOfferingsByDateRange(startTime, endTime)
+		if err != nil {
+			log.Printf("App.GetOfferingsByDateRange - error getting offerings by date range from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(offerings)
+	}
 }
 
 func (app *App) UpdateOffering(w http.ResponseWriter, r *http.Request) {

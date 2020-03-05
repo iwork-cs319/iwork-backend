@@ -24,9 +24,46 @@ func (p PostgresDBStore) GetOneBooking(id string) (*model.Booking, error) {
 	return &booking, nil
 }
 
+func (p PostgresDBStore) GetOneExpandedBooking(id string) (*model.ExpandedBooking, error) {
+	sqlStatement := `SELECT b.id, u.id, w.id, b.start_time, b.end_time, b.cancelled, w.name, u.name, f.id, f.name
+					 FROM bookings AS b
+         			 INNER JOIN users AS u ON b.user_id = u.id
+         			 INNER JOIN workspaces AS w ON b.workspace_id = w.id
+         			 INNER JOIN floors AS f ON w.floor_id = f.id  
+					 WHERE b.id=$1;`
+	var eBooking model.ExpandedBooking
+	row := p.database.QueryRow(sqlStatement, id)
+	err := row.Scan(
+		&eBooking.ID,
+		&eBooking.UserID,
+		&eBooking.WorkspaceID,
+		&eBooking.StartDate,
+		&eBooking.EndDate,
+		&eBooking.Cancelled,
+		&eBooking.WorkspaceName,
+		&eBooking.UserName,
+		&eBooking.FloorID,
+		&eBooking.FloorName,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &eBooking, nil
+}
+
 func (p PostgresDBStore) GetAllBookings() ([]*model.Booking, error) {
 	sqlStatement := `SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings;`
 	return p.queryMultipleBookings(sqlStatement)
+}
+
+func (p PostgresDBStore) GetAllExpandedBookings() ([]*model.ExpandedBooking, error) {
+	sqlStatement := `SELECT b.id, u.id, w.id, b.start_time, b.end_time, b.cancelled, w.name, u.name, f.id, f.name
+					 FROM bookings AS b
+         			 INNER JOIN users AS u ON b.user_id = u.id
+         			 INNER JOIN workspaces AS w ON b.workspace_id = w.id
+         			 INNER JOIN floors AS f ON w.floor_id = f.id  
+					 `
+	return p.queryMultipleExpandedBookings(sqlStatement)
 }
 
 func (p PostgresDBStore) GetBookingsByWorkspaceID(id string) ([]*model.Booking, error) {
@@ -35,10 +72,34 @@ func (p PostgresDBStore) GetBookingsByWorkspaceID(id string) ([]*model.Booking, 
 	return p.queryMultipleBookings(sqlStatement, id)
 }
 
+func (p PostgresDBStore) GetExpandedBookingsByWorkspaceID(id string) ([]*model.ExpandedBooking, error) {
+	sqlStatement :=
+		`SELECT b.id, u.id, w.id, b.start_time, b.end_time, b.cancelled, w.name, u.name, f.id, f.name
+		 FROM bookings AS b
+		 INNER JOIN users AS u ON b.user_id = u.id
+		 INNER JOIN workspaces AS w ON b.workspace_id = w.id
+		 INNER JOIN floors AS f ON w.floor_id = f.id  
+		 WHERE workspace_id=$1;`
+
+	return p.queryMultipleExpandedBookings(sqlStatement, id)
+}
+
 func (p PostgresDBStore) GetBookingsByUserID(id string) ([]*model.Booking, error) {
 	sqlStatement :=
 		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings WHERE user_id=$1;`
 	return p.queryMultipleBookings(sqlStatement, id)
+}
+
+func (p PostgresDBStore) GetExpandedBookingsByUserID(id string) ([]*model.ExpandedBooking, error) {
+	sqlStatement :=
+		`SELECT b.id, u.id, w.id, b.start_time, b.end_time, b.cancelled, w.name, u.name, f.id, f.name
+		 FROM bookings AS b
+		 INNER JOIN users AS u ON b.user_id = u.id
+		 INNER JOIN workspaces AS w ON b.workspace_id = w.id
+		 INNER JOIN floors AS f ON w.floor_id = f.id  
+		 WHERE u.id=$1;`
+
+	return p.queryMultipleExpandedBookings(sqlStatement, id)
 }
 
 func (p PostgresDBStore) GetBookingsByDateRange(start time.Time, end time.Time) ([]*model.Booking, error) {
@@ -46,6 +107,18 @@ func (p PostgresDBStore) GetBookingsByDateRange(start time.Time, end time.Time) 
 		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM bookings 
 				WHERE start_time >= $1 AND end_time <= $2;`
 	return p.queryMultipleBookings(sqlStatement, start, end)
+}
+
+func (p PostgresDBStore) GetExpandedBookingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedBooking, error) {
+	sqlStatement :=
+		`SELECT b.id, u.id, w.id, b.start_time, b.end_time, b.cancelled, w.name, u.name, f.id, f.name
+		 FROM bookings AS b
+		 INNER JOIN users AS u ON b.user_id = u.id
+		 INNER JOIN workspaces AS w ON b.workspace_id = w.id
+		 INNER JOIN floors AS f ON w.floor_id = f.id  
+		 WHERE start_time >= $1 AND end_time <= $2;`
+
+	return p.queryMultipleExpandedBookings(sqlStatement, start, end)
 }
 
 func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
@@ -129,6 +202,40 @@ func (p PostgresDBStore) queryMultipleBookings(sqlStatement string, args ...inte
 			log.Printf("PostgresDBStore.queryMultipleBookings: %v, sqlStatement: %s\n", err, sqlStatement)
 		}
 		bookings = append(bookings, &booking)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return bookings, nil
+}
+
+func (p PostgresDBStore) queryMultipleExpandedBookings(sqlStatement string, args ...interface{}) ([]*model.ExpandedBooking, error) {
+	rows, err := p.database.Query(sqlStatement, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	bookings := make([]*model.ExpandedBooking, 0)
+	for rows.Next() {
+		var eBooking model.ExpandedBooking
+		err := rows.Scan(
+			&eBooking.ID,
+			&eBooking.UserID,
+			&eBooking.WorkspaceID,
+			&eBooking.StartDate,
+			&eBooking.EndDate,
+			&eBooking.Cancelled,
+			&eBooking.WorkspaceName,
+			&eBooking.UserName,
+			&eBooking.FloorID,
+			&eBooking.FloorName,
+		)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.queryMultipleBookings: %v, sqlStatement: %s\n", err, sqlStatement)
+		}
+		bookings = append(bookings, &eBooking)
 	}
 	err = rows.Err()
 	if err != nil {

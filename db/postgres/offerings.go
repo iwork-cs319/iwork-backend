@@ -24,9 +24,46 @@ func (p PostgresDBStore) GetOneOffering(id string) (*model.Offering, error) {
 	return &offering, nil
 }
 
+func (p PostgresDBStore) GetOneExpandedOffering(id string) (*model.ExpandedOffering, error) {
+	sqlStatement := `SELECT o.id, u.id, w.id, o.start_time, o.end_time, o.cancelled, w.name, u.name, f.id, f.name
+					 FROM offerings AS o
+         			 INNER JOIN users AS u ON o.user_id = u.id
+         			 INNER JOIN workspaces AS w ON o.workspace_id = w.id
+         			 INNER JOIN floors AS f ON w.floor_id = f.id  
+					 WHERE o.id=$1;`
+	var eOffering model.ExpandedOffering
+	row := p.database.QueryRow(sqlStatement, id)
+	err := row.Scan(
+		&eOffering.ID,
+		&eOffering.UserID,
+		&eOffering.WorkspaceID,
+		&eOffering.StartDate,
+		&eOffering.EndDate,
+		&eOffering.Cancelled,
+		&eOffering.WorkspaceName,
+		&eOffering.UserName,
+		&eOffering.FloorID,
+		&eOffering.FloorName,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &eOffering, nil
+}
+
 func (p PostgresDBStore) GetAllOfferings() ([]*model.Offering, error) {
 	sqlStatement := `SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM offerings;`
 	return p.queryMultipleOfferings(sqlStatement)
+}
+
+func (p PostgresDBStore) GetAllExpandedOfferings() ([]*model.ExpandedOffering, error) {
+	sqlStatement := `SELECT o.id, u.id, w.id, o.start_time, o.end_time, o.cancelled, w.name, u.name, f.id, f.name
+					 FROM offerings AS o
+         			 INNER JOIN users AS u ON o.user_id = u.id
+         			 INNER JOIN workspaces AS w ON o.workspace_id = w.id
+         			 INNER JOIN floors AS f ON w.floor_id = f.id  
+					 `
+	return p.queryMultipleExpandedOfferings(sqlStatement)
 }
 
 func (p PostgresDBStore) GetOfferingsByWorkspaceID(id string) ([]*model.Offering, error) {
@@ -35,10 +72,32 @@ func (p PostgresDBStore) GetOfferingsByWorkspaceID(id string) ([]*model.Offering
 	return p.queryMultipleOfferings(sqlStatement, id)
 }
 
+func (p PostgresDBStore) GetExpandedOfferingsByWorkspaceID(id string) ([]*model.ExpandedOffering, error) {
+	sqlStatement := `SELECT o.id, u.id, w.id, o.start_time, o.end_time, o.cancelled, w.name, u.name, f.id, f.name
+					 FROM offerings AS o
+         			 INNER JOIN users AS u ON o.user_id = u.id
+         			 INNER JOIN workspaces AS w ON o.workspace_id = w.id
+         			 INNER JOIN floors AS f ON w.floor_id = f.id
+					 WHERE workspace_id=$1;
+					 `
+	return p.queryMultipleExpandedOfferings(sqlStatement, id)
+}
+
 func (p PostgresDBStore) GetOfferingsByUserID(id string) ([]*model.Offering, error) {
 	sqlStatement :=
 		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM offerings WHERE user_id=$1;`
 	return p.queryMultipleOfferings(sqlStatement, id)
+}
+
+func (p PostgresDBStore) GetExpandedOfferingsByUserID(id string) ([]*model.ExpandedOffering, error) {
+	sqlStatement := `SELECT o.id, u.id, w.id, o.start_time, o.end_time, o.cancelled, w.name, u.name, f.id, f.name
+					 FROM offerings AS o
+         			 INNER JOIN users AS u ON o.user_id = u.id
+         			 INNER JOIN workspaces AS w ON o.workspace_id = w.id
+         			 INNER JOIN floors AS f ON w.floor_id = f.id
+					 WHERE u.id=$1;
+					 `
+	return p.queryMultipleExpandedOfferings(sqlStatement, id)
 }
 
 func (p PostgresDBStore) GetOfferingsByDateRange(start time.Time, end time.Time) ([]*model.Offering, error) {
@@ -46,6 +105,17 @@ func (p PostgresDBStore) GetOfferingsByDateRange(start time.Time, end time.Time)
 		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled FROM offerings 
 				WHERE start_time >= $1 AND end_time <= $2;`
 	return p.queryMultipleOfferings(sqlStatement, start, end)
+}
+
+func (p PostgresDBStore) GetExpandedOfferingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedOffering, error) {
+	sqlStatement := `SELECT o.id, u.id, w.id, o.start_time, o.end_time, o.cancelled, w.name, u.name, f.id, f.name
+					 FROM offerings AS o
+         			 INNER JOIN users AS u ON o.user_id = u.id
+         			 INNER JOIN workspaces AS w ON o.workspace_id = w.id
+         			 INNER JOIN floors AS f ON w.floor_id = f.id
+					 WHERE start_time >= $1 AND end_time <= $2;
+					 `
+	return p.queryMultipleExpandedOfferings(sqlStatement, start, end)
 }
 
 func (p PostgresDBStore) CreateOffering(offering *model.Offering) (string, error) {
@@ -129,6 +199,40 @@ func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...int
 			log.Printf("PostgresDBStore.queryMultipleOfferings: %v, sqlStatement: %s\n", err, sqlStatement)
 		}
 		offerings = append(offerings, &offering)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return offerings, nil
+}
+
+func (p PostgresDBStore) queryMultipleExpandedOfferings(sqlStatement string, args ...interface{}) ([]*model.ExpandedOffering, error) {
+	rows, err := p.database.Query(sqlStatement, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	offerings := make([]*model.ExpandedOffering, 0)
+	for rows.Next() {
+		var eOffering model.ExpandedOffering
+		err := rows.Scan(
+			&eOffering.ID,
+			&eOffering.UserID,
+			&eOffering.WorkspaceID,
+			&eOffering.StartDate,
+			&eOffering.EndDate,
+			&eOffering.Cancelled,
+			&eOffering.WorkspaceName,
+			&eOffering.UserName,
+			&eOffering.FloorID,
+			&eOffering.FloorName,
+		)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.queryMultipleBookings: %v, sqlStatement: %s\n", err, sqlStatement)
+		}
+		offerings = append(offerings, &eOffering)
 	}
 	err = rows.Err()
 	if err != nil {
