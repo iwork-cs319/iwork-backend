@@ -21,10 +21,10 @@ type Booking struct {
 
 type ExpandedBooking struct {
 	Booking
-	WorkspaceName       string `json:"workspace_name"`
-	UserName       string `json:"user_name"`
-	FloorID string                 `json:"floor_id"`
-	FloorName  string                 `json:"floor_name"`
+	WorkspaceName string `json:"workspace_name"`
+	UserName      string `json:"user_name"`
+	FloorID       string `json:"floor_id"`
+	FloorName     string `json:"floor_name"`
 }
 
 type User struct {
@@ -47,4 +47,12 @@ type Offering struct {
 	StartDate   time.Time `json:"start_time"`
 	EndDate     time.Time `json:"end_time"`
 	Cancelled   bool      `json:"cancelled"`
+}
+
+type ExpandedOffering struct {
+	Offering
+	WorkspaceName string `json:"workspace_name"`
+	UserName      string `json:"user_name"`
+	FloorID       string `json:"floor_id"`
+	FloorName     string `json:"floor_name"`
 }

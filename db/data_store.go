@@ -65,10 +65,15 @@ type floorProvider interface {
 
 type offeringProvider interface {
 	GetOneOffering(id string) (*model.Offering, error)
+	GetOneExpandedOffering(id string) (*model.ExpandedOffering, error)
 	GetAllOfferings() ([]*model.Offering, error)
+	GetAllExpandedOfferings() ([]*model.ExpandedOffering, error)
 	GetOfferingsByWorkspaceID(id string) ([]*model.Offering, error)
+	GetExpandedOfferingsByWorkspaceID(id string) ([]*model.ExpandedOffering, error)
 	GetOfferingsByUserID(id string) ([]*model.Offering, error)
+	GetExpandedOfferingsByUserID(id string) ([]*model.ExpandedOffering, error)
 	GetOfferingsByDateRange(start time.Time, end time.Time) ([]*model.Offering, error)
+	GetExpandedOfferingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedOffering, error)
 	CreateOffering(booking *model.Offering) (string, error)
 	UpdateOffering(id string, booking *model.Offering) error
 	RemoveOffering(id string) error
