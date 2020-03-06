@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS offerings;
 DROP TABLE IF EXISTS bookings;
+DROP TABLE IF EXISTS workspace_assignee;
 DROP TABLE IF EXISTS workspaces;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS floors;
@@ -23,8 +24,7 @@ CREATE TABLE workspaces
 (
     id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     floor_id uuid REFERENCES floors (id) NOT NULL,
-    user_id  uuid REFERENCES users (id),
-    name     VARCHAR(32)                        NOT NULL,
+    name     VARCHAR(32)                 NOT NULL,
     locked   BOOLEAN          DEFAULT FALSE
 );
 
@@ -34,8 +34,8 @@ CREATE TABLE bookings
     user_id      uuid REFERENCES users (id)      NOT NULL,
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     cancelled    BOOLEAN          DEFAULT FALSE,
-    start_time   TIMESTAMPTZ                            NOT NULL,
-    end_time     TIMESTAMPTZ                            NOT NULL
+    start_time   TIMESTAMPTZ                     NOT NULL,
+    end_time     TIMESTAMPTZ                     NOT NULL
 );
 
 CREATE TABLE offerings
@@ -44,6 +44,15 @@ CREATE TABLE offerings
     user_id      uuid REFERENCES users (id)      NOT NULL,
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     cancelled    BOOLEAN          DEFAULT FALSE,
-    start_time   TIMESTAMPTZ                            NOT NULL,
-    end_time     TIMESTAMPTZ                            NOT NULL
+    start_time   TIMESTAMPTZ                     NOT NULL,
+    end_time     TIMESTAMPTZ                     NOT NULL
 );
+
+CREATE TABLE workspace_assignee
+(
+    id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id      uuid REFERENCES users (id)      NOT NULL,
+    workspace_id uuid REFERENCES workspaces (id) NOT NULL,
+    start_time   TIMESTAMPTZ                     NOT NULL,
+    end_time     TIMESTAMPTZ
+)

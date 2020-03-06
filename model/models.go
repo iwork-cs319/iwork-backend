@@ -6,7 +6,6 @@ type Workspace struct {
 	ID    string                 `json:"id"`
 	Name  string                 `json:"name"`
 	Floor string                 `json:"floor_id"`
-	User  string                 `json:"user_id"`
 	Props map[string]interface{} `json:"props"`
 }
 
