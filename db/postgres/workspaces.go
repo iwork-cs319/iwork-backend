@@ -1,22 +1,17 @@
 package postgres
 
 import (
-	"database/sql"
 	"go-api/model"
 	"log"
 )
 
 func (p PostgresDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
-	sqlStatement := `SELECT id, name, floor_id, user_id FROM workspaces WHERE id=$1;`
+	sqlStatement := `SELECT id, name, floor_id FROM workspaces WHERE id=$1;`
 	var workspace model.Workspace
-	var userId sql.NullString
 	row := p.database.QueryRow(sqlStatement, id)
-	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &userId)
+	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor)
 	if err != nil {
 		return nil, err
-	}
-	if userId.Valid {
-		workspace.User = userId.String
 	}
 	return &workspace, nil
 }
@@ -54,7 +49,7 @@ func (p PostgresDBStore) RemoveWorkspace(id string) error {
 }
 
 func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
-	rows, err := p.database.Query(`SELECT id, name, floor_id, user_id FROM workspaces;`)
+	rows, err := p.database.Query(`SELECT id, name, floor_id FROM workspaces;`)
 	if err != nil {
 		return nil, err
 	}
@@ -62,14 +57,10 @@ func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
 	workspaces := make([]*model.Workspace, 0)
 	for rows.Next() {
 		var workspace model.Workspace
-		var userId sql.NullString
-		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &userId)
+		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor)
 		if err != nil {
 			// dont cause panic here, log it
 			log.Printf("PostgresDBStore.GetAllWorkspaces: %v\n", err)
-		}
-		if userId.Valid {
-			workspace.User = userId.String
 		}
 		workspaces = append(workspaces, &workspace)
 	}
