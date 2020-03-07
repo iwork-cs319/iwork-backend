@@ -29,6 +29,7 @@ type workspaceProvider interface {
 	RemoveWorkspace(id string) error
 	GetAllWorkspaces() ([]*model.Workspace, error)
 	FindAvailability(floorId string, start time.Time, end time.Time) ([]string, error)
+	CreateAssignment(userId, workspaceId string) error
 }
 
 type bookingProvider interface {
@@ -50,7 +51,7 @@ type bookingProvider interface {
 type userProvider interface {
 	GetOneUser(id string) (*model.User, error)
 	GetAllUsers() ([]*model.User, error)
-	//CreateUser(user *model.User) error
+	CreateUser(user *model.User) error
 	//UpdateUser(id string, user *model.User) error
 	//RemoveUser(id string) error
 }

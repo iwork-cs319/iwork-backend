@@ -1,16 +1,19 @@
 package routes
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	//"go-api/model"
-	//"io/ioutil"
+	"go-api/model"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 func (app *App) RegisterUserRoutes() {
-	//app.router.HandleFunc("/users", app.CreateUser).Methods("POST")
+	app.router.HandleFunc("/users", app.CreateUsers).Methods("POST")
 	app.router.HandleFunc("/users/{id}", app.GetOneUser).Methods("GET")
 	//app.router.HandleFunc("/users/workspaces/{workspace_id}", app.GetUsersByWorkspaceID).Methods("GET")
 	app.router.HandleFunc("/users", app.GetAllUsers).Methods("GET")
@@ -18,32 +21,67 @@ func (app *App) RegisterUserRoutes() {
 	//app.router.HandleFunc("/users/{id}", app.RemoveUser).Methods("DELETE")
 }
 
-//func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
-//	var newUser model.User
-//	reqBody, err := ioutil.ReadAll(r.Body)
-//	if err != nil {
-//		log.Printf("App.CreateUser - error reading request body %v", err)
-//		w.WriteHeader(http.StatusBadRequest)
-//		return
-//	}
-//
-//	err = json.Unmarshal(reqBody, &newUser)
-//	if err != nil {
-//		log.Printf("App.CreateUser - error unmarshaling request body %v", err)
-//		w.WriteHeader(http.StatusBadRequest)
-//		return
-//	}
-//
-//	err = app.store.UserProvider.CreateUser(&newUser)
-//	if err != nil {
-//		log.Printf("App.CreateUser - error creating user %v", err)
-//		w.WriteHeader(http.StatusInternalServerError)
-//		return
-//	}
-//
-//	w.WriteHeader(http.StatusCreated)
-//	json.NewEncoder(w).Encode(newUser)
-//}
+func (app *App) CreateUsers(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, MaxFileSize+512)
+	parseErr := r.ParseMultipartForm(MaxFileSize)
+	if parseErr != nil {
+		log.Println("App.CreateUsers - failed to parse message")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if r.MultipartForm == nil || r.MultipartForm.File == nil {
+		log.Println("App.CreateUsers - expecting multipart form file")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	usersFile, _, err := r.FormFile("users")
+	if err != nil {
+		log.Println("App.CreateUsers - users file is absent: " + err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	csvFile := csv.NewReader(usersFile) // email, name, id, department, isAdmin
+	users := make([]*model.User, 0)
+	_, _ = csvFile.Read() // skip heading row
+	for {
+		// Read each record from csv
+		record, err := csvFile.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Println("App.CreateUsers - failed to parse csv file")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		b, err := strconv.ParseBool(record[4])
+		if err != nil {
+			b = false
+		}
+		email := strings.TrimSpace(record[0])
+		name := strings.TrimSpace(record[1])
+		userId := strings.TrimSpace(record[2])
+		department := strings.TrimSpace(record[3])
+		user := &model.User{
+			Email:      email,
+			Name:       name,
+			ID:         userId,
+			Department: department,
+			IsAdmin:    b,
+		}
+		err = app.store.UserProvider.CreateUser(user)
+		if err != nil {
+			log.Printf("App.CreateUsers - error creating user %+v\n", err)
+		} else {
+			users = append(users, user)
+		}
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(users)
+}
 
 func (app *App) GetOneUser(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["id"]

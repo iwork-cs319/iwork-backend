@@ -27,24 +27,25 @@ func (p PostgresDBStore) GetAllUsers() ([]*model.User, error) {
 	return p.queryMultipleUsers(sqlStatement)
 }
 
-//func (p PostgresDBStore) CreateUser(user *model.User) error {
-//	sqlStatement :=
-//		`INSERT INTO users(id, name, department, is_admin) VALUES ($1, $2, $3, $4) RETURNING id`
-//	var id string
-//	err := p.database.QueryRow(sqlStatement,
-//		user.ID,
-//		user.Name,
-//		user.Department,
-//		user.IsAdmin,
-//	).Scan(&id)
-//	if err != nil {
-//		return err
-//	}
-//	if id != user.ID {
-//		return CreateError
-//	}
-//	return nil
-//}
+func (p PostgresDBStore) CreateUser(user *model.User) error {
+	sqlStatement :=
+		`INSERT INTO users(id, name, email, department, is_admin) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	var id string
+	err := p.database.QueryRow(sqlStatement,
+		user.ID,
+		user.Name,
+		user.Email,
+		user.Department,
+		user.IsAdmin,
+	).Scan(&id)
+	if err != nil {
+		return err
+	}
+	if id != user.ID {
+		return CreateError
+	}
+	return nil
+}
 
 //func (p PostgresDBStore) UpdateUser(id string, user *model.User) error {
 //	sqlStatement :=

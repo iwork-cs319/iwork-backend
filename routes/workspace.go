@@ -1,13 +1,16 @@
 package routes
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"go-api/model"
 	"go-api/utils"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func (app *App) RegisterWorkspaceRoutes() {
@@ -21,6 +24,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 	app.router.HandleFunc("/workspaces", app.GetAllWorkspaces).Methods("GET")
 	app.router.HandleFunc("/workspaces/{id}", app.UpdateWorkspace).Methods("PATCH")
 	app.router.HandleFunc("/workspaces/{id}", app.DeleteWorkspace).Methods("DELETE")
+	app.router.HandleFunc("/assignments", app.CreateAssignments).Methods("POST")
 }
 
 func (app *App) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -158,4 +162,75 @@ func (app *App) GetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(workspaceIds)
+}
+
+func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, MaxFileSize+512)
+	parseErr := r.ParseMultipartForm(MaxFileSize)
+	if parseErr != nil {
+		log.Println("App.CreateAssignments - failed to parse message")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if r.MultipartForm == nil || r.MultipartForm.File == nil {
+		log.Println("App.CreateAssignments - expecting multipart form file")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	assignmentsFile, _, err := r.FormFile("assignments")
+	if err != nil {
+		log.Println("App.CreateAssignments - users file is absent: " + err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	floors, err := app.store.FloorProvider.GetAllFloors()
+	if err != nil {
+		log.Println("App.CreateAssignments - failed to get all floors: " + err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	floorMap := make(map[string]string)
+	for _, f := range floors {
+		floorMap[f.Name] = f.ID
+	}
+	csvFile := csv.NewReader(assignmentsFile) // workspaceName, FloorName, UserId
+	workspaces := make([]*model.Workspace, 0)
+	_, _ = csvFile.Read() // skip first row
+	for {
+		// Read each record from csv
+		record, err := csvFile.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Println("App.CreateAssignments - failed to parse csv file")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		workspaceName := strings.TrimSpace(record[0])
+		floorName := strings.TrimSpace(record[1])
+		userId := strings.TrimSpace(record[2])
+		workspace := &model.Workspace{
+			Name:  workspaceName,
+			Floor: floorMap[floorName],
+			Props: nil,
+		}
+		id, err := app.store.WorkspaceProvider.CreateWorkspace(workspace)
+		if err != nil {
+			log.Println("App.CreateAssignments - failed to create workspace: " + err.Error())
+		} else {
+			workspace.ID = id
+			workspaces = append(workspaces, workspace)
+			log.Printf("--- inserting %+v\n", workspace)
+		}
+		err = app.store.WorkspaceProvider.CreateAssignment(userId, id)
+		if err != nil {
+			log.Println("App.CreateAssignments - failed to create assignment: " + err.Error())
+		}
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(workspaces)
 }
