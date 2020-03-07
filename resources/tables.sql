@@ -8,15 +8,16 @@ DROP TABLE IF EXISTS floors;
 CREATE TABLE floors
 (
     id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name         VARCHAR(32) NOT NULL,
-    download_url TEXT        NOT NULL
+    name         TEXT NOT NULL,
+    download_url TEXT NOT NULL
 );
 
 CREATE TABLE users
 (
     id         uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name       VARCHAR(32) NOT NULL,
-    department VARCHAR(32) NOT NULL,
+    name       TEXT NOT NULL,
+    department TEXT NOT NULL,
+    email      TEXT             DEFAULT '',
     is_admin   BOOLEAN
 );
 
@@ -24,7 +25,7 @@ CREATE TABLE workspaces
 (
     id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     floor_id uuid REFERENCES floors (id) NOT NULL,
-    name     VARCHAR(32)                 NOT NULL,
+    name     TEXT                        NOT NULL,
     locked   BOOLEAN          DEFAULT FALSE
 );
 

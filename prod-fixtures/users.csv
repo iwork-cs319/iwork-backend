@@ -1,0 +1,7 @@
+email, name, id, department, isAdmin
+arthur@iworkcs319.onmicrosoft.com,Arthur Curry,1a2e52c8-8f03-4170-952e-1fdb305369d3,Operations,False
+barry@iworkcs319.onmicrosoft.com,Barry Allen,f47e243f-4496-4e6a-899c-7d015730065d,Research and Development,False
+bruce@iworkcs319.onmicrosoft.com,Bruce Wayne,476bb5f4-3954-46bd-aeff-c54848453989,Research and Development,True
+clark@iworkcs319.onmicrosoft.com,Clark Kent,a09d8f67-03d2-4a75-94ff-ace4480acf0c,Marketing,False
+cs319.icbc_outlook.com#EXT#@iworkcs319.onmicrosoft.com,cs319.icbc@outlook.com,cs319.icbc,Executive,True
+diana@iworkcs319.onmicrosoft.com,Diana Prince,eb4a1245-deb9-43f9-8044-2676b5d30d37,Operations,False
