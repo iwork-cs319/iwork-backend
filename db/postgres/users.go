@@ -6,12 +6,13 @@ import (
 )
 
 func (p PostgresDBStore) GetOneUser(id string) (*model.User, error) {
-	sqlStatement := `SELECT id, name, department, is_admin FROM users WHERE id=$1;`
+	sqlStatement := `SELECT id, name, email, department, is_admin FROM users WHERE id=$1;`
 	var user model.User
 	row := p.database.QueryRow(sqlStatement, id)
 	err := row.Scan(
 		&user.ID,
 		&user.Name,
+		&user.Email,
 		&user.Department,
 		&user.IsAdmin,
 	)
@@ -22,7 +23,7 @@ func (p PostgresDBStore) GetOneUser(id string) (*model.User, error) {
 }
 
 func (p PostgresDBStore) GetAllUsers() ([]*model.User, error) {
-	sqlStatement := `SELECT id, name, department, is_admin FROM users;`
+	sqlStatement := `SELECT id, name, email, department, is_admin FROM users;`
 	return p.queryMultipleUsers(sqlStatement)
 }
 
@@ -97,6 +98,7 @@ func (p PostgresDBStore) queryMultipleUsers(sqlStatement string, args ...interfa
 		err := rows.Scan(
 			&user.ID,
 			&user.Name,
+			&user.Email,
 			&user.Department,
 			&user.IsAdmin,
 		)
