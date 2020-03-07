@@ -223,7 +223,6 @@ func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
 		} else {
 			workspace.ID = id
 			workspaces = append(workspaces, workspace)
-			log.Printf("--- inserting %+v\n", workspace)
 		}
 		err = app.store.WorkspaceProvider.CreateAssignment(userId, id)
 		if err != nil {
