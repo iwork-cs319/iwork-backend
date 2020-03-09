@@ -42,6 +42,7 @@ func (app *App) CreateOffering(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	newOffering.CreatedBy = newOffering.UserID
 
 	id, err := app.store.OfferingProvider.CreateOffering(&newOffering)
 	if err != nil {

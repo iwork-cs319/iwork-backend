@@ -42,6 +42,7 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	newBooking.CreatedBy = newBooking.UserID
 
 	id, err := app.store.BookingProvider.CreateBooking(&newBooking)
 	if err != nil {
