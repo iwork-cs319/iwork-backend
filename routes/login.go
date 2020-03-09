@@ -16,6 +16,7 @@ type loginBody struct {
 
 func (app *App) RegisterLoginRoutes() {
 	app.router.HandleFunc("/login", app.Login).Methods("POST")
+	app.router.HandleFunc("/logout", app.Logout).Methods("POST")
 	//app.router.Use(app.authCheckMiddleware)
 }
 
@@ -54,6 +55,16 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+func (app *App) Logout(w http.ResponseWriter, r *http.Request) {
+	c, _ := r.Cookie("session_token")
+	_, err := app.cache.Do("DEL", c.Value)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (app *App) authCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.RequestURI == "/login" { // short-circuit for /login route
@@ -81,7 +92,7 @@ func (app *App) authCheckMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		// TODO logic for auto-refresh (security concern???)
-		// If TTL is < 3600s then create new session token and attach cookie
+		// If TTL is < 3600s then create new sessions token and attach cookie
 		next.ServeHTTP(w, r)
 	})
 }
