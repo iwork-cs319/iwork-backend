@@ -8,6 +8,7 @@ import (
 )
 
 const SessionTimeout = 86400 // 1 day in seconds
+const CookieSessionToken = "session_token"
 
 type loginBody struct {
 	Token  string `json:"auth_token"`
@@ -47,7 +48,7 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:    "session_token",
+		Name:    CookieSessionToken,
 		Value:   sessionToken.String(),
 		Expires: time.Now().Add(SessionTimeout * time.Second),
 	})
@@ -70,7 +71,7 @@ func (app *App) authCheckMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		c, err := r.Cookie("session_token")
+		c, err := r.Cookie(CookieSessionToken)
 		if err != nil {
 			if err == http.ErrNoCookie {
 				w.WriteHeader(http.StatusUnauthorized)
