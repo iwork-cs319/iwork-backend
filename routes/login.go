@@ -22,10 +22,9 @@ func (app *App) RegisterLoginRoutes() {
 
 func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 	var loginBody loginBody
-	// Get the JSON body and decode into credentials
+
 	err := json.NewDecoder(r.Body).Decode(&loginBody)
 	if err != nil {
-		// If the structure of the body is wrong, return an HTTP error
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
