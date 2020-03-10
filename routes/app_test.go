@@ -2,7 +2,6 @@ package routes
 
 import (
 	"github.com/gorilla/mux"
-	"go-api/db"
 	"go-api/db/postgres"
 	"io"
 	"log"
@@ -13,22 +12,22 @@ import (
 )
 
 type testRouteConfig struct {
-	Method  string
-	URL     string
-	Path    string
-	Body    io.Reader
-	Handler func(http.ResponseWriter, *http.Request)
+	Method    string
+	URL       string
+	Body      io.Reader
+	URLParams map[string]string
+	Handler   func(http.ResponseWriter, *http.Request)
 }
 
-func doRequest(t *testing.T, config *testRouteConfig) *httptest.ResponseRecorder {
+func executeReq(t *testing.T, config *testRouteConfig) *httptest.ResponseRecorder {
 	req, err := http.NewRequest(config.Method, config.URL, config.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
+	req = mux.SetURLVars(req, config.URLParams)
 	rr := httptest.NewRecorder()
-	router := mux.NewRouter()
-	router.HandleFunc(config.Path, config.Handler)
-	router.ServeHTTP(rr, req)
+	handler := http.HandlerFunc(config.Handler)
+	handler.ServeHTTP(rr, req)
 	return rr
 }
 
@@ -39,21 +38,22 @@ func NewTestApp() *App {
 		log.Println("Failed to connect to database")
 		log.Fatal(err)
 	}
-	gDriveConfig := os.Getenv("G_DRIVE_CREDENTIALS")
-	driveClient, err := db.NewDriveClient(gDriveConfig)
-	if err != nil {
-		log.Println("Failed to connect to google drive")
-		log.Fatal(err)
-	}
+	//gDriveConfig := os.Getenv("G_DRIVE_CREDENTIALS")
+	//driveClient, err := db.NewDriveClient(gDriveConfig)
+	//if err != nil {
+	//	log.Println("Failed to connect to google drive")
+	//	log.Fatal(err)
+	//}
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
-		gDrive: driveClient,
+		gDrive: nil,
 	}
 }
 
 func TestApp(t *testing.T) {
 	a := NewTestApp()
 	testUsersEndpoints(t, a)
+	testWorkspaceEndpoints(t, a)
 	//TODO add more here
 }

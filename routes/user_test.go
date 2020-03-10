@@ -16,12 +16,14 @@ func testUsersEndpoints(t *testing.T, app *App) {
 }
 
 func testGetOneUserFail(t *testing.T, app *App) {
-	rr := doRequest(t, &testRouteConfig{
+	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
-		URL:     fmt.Sprintf("/users/%s", "2"),
 		Body:    nil,
-		Path:    "/users/{id}",
 		Handler: app.GetOneUser,
+		URL:     fmt.Sprintf("/users/%s", "2"),
+		URLParams: map[string]string{
+			"id": "2",
+		},
 	})
 
 	if status := rr.Code; status != http.StatusNotFound {
@@ -31,12 +33,14 @@ func testGetOneUserFail(t *testing.T, app *App) {
 }
 
 func testGetOneUser(t *testing.T, app *App) {
-	rr := doRequest(t, &testRouteConfig{
+	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
-		URL:     fmt.Sprintf("/users/%s", "e99a988a-1d41-3997-8d59-959a48ac24a0"),
 		Body:    nil,
-		Path:    "/users/{id}",
 		Handler: app.GetOneUser,
+		URL:     fmt.Sprintf("/users/%s", "e99a988a-1d41-3997-8d59-959a48ac24a0"),
+		URLParams: map[string]string{
+			"id": "e99a988a-1d41-3997-8d59-959a48ac24a0",
+		},
 	})
 
 	if status := rr.Code; status != http.StatusOK {
@@ -51,12 +55,11 @@ func testGetOneUser(t *testing.T, app *App) {
 }
 
 func testGetAllUsers(t *testing.T, app *App) {
-	rr := doRequest(t, &testRouteConfig{
+	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
-		URL:     "/users/",
 		Body:    nil,
-		Path:    "/users/",
 		Handler: app.GetAllUsers,
+		URL:     "/users/",
 	})
 
 	// Check the status code is what we expect.
