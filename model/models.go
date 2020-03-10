@@ -9,8 +9,8 @@ type Workspace struct {
 	Props map[string]interface{} `json:"props"`
 }
 
-func (w *Workspace) Equal(other *Workspace) bool {
-	return w.ID == other.ID && w.Name == other.Name && w.Floor == other.Floor
+func (this *Workspace) Equal(other *Workspace) bool {
+	return this.ID == other.ID && this.Name == other.Name && this.Floor == other.Floor
 }
 
 type Booking struct {
@@ -39,10 +39,10 @@ type User struct {
 	Email      string `json:"email"`
 }
 
-func (w *User) Equal(other *User) bool {
-	return w.ID == other.ID && w.Name == other.Name &&
-		w.Email == other.Email && w.Department == other.Department &&
-		w.IsAdmin == other.IsAdmin
+func (this *User) Equal(other *User) bool {
+	return this.ID == other.ID && this.Name == other.Name &&
+		this.Email == other.Email && this.Department == other.Department &&
+		this.IsAdmin == other.IsAdmin
 }
 
 type Floor struct {

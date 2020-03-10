@@ -79,7 +79,7 @@ func testGetOneUser(t *testing.T, app *App) {
 	}
 	var payload *model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if UserBarry.Equal(payload) {
+	if !UserBarry.Equal(payload) {
 		t.Fatalf("testGetOneUser: incorrect user : got %s", payload.Name)
 	}
 }

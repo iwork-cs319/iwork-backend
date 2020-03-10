@@ -100,7 +100,7 @@ func testGetOneWorkspace(t *testing.T, app *App) {
 
 	var payload *model.Workspace
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if Workspace1.Equal(payload) {
+	if !Workspace1.Equal(payload) {
 		t.Fatalf("testGetOneWorkspace: incorrect workspace : got %s", payload.Name)
 	}
 }
