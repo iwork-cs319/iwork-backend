@@ -36,7 +36,8 @@ CREATE TABLE bookings
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                     NOT NULL,
-    end_time     TIMESTAMPTZ                     NOT NULL
+    end_time     TIMESTAMPTZ                     NOT NULL,
+    created_by   uuid REFERENCES users (id)      NOT NULL
 );
 
 CREATE TABLE offerings
@@ -46,7 +47,8 @@ CREATE TABLE offerings
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                     NOT NULL,
-    end_time     TIMESTAMPTZ                     NOT NULL
+    end_time     TIMESTAMPTZ                     NOT NULL,
+    created_by   uuid REFERENCES users (id)      NOT NULL
 );
 
 CREATE TABLE workspace_assignee

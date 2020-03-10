@@ -16,6 +16,7 @@ type Booking struct {
 	StartDate   time.Time `json:"start_time"`
 	EndDate     time.Time `json:"end_time"`
 	Cancelled   bool      `json:"cancelled"`
+	CreatedBy   string    `json:"created_by"`
 }
 
 type ExpandedBooking struct {
@@ -47,6 +48,7 @@ type Offering struct {
 	StartDate   time.Time `json:"start_time"`
 	EndDate     time.Time `json:"end_time"`
 	Cancelled   bool      `json:"cancelled"`
+	CreatedBy   string    `json:"created_by"`
 }
 
 type ExpandedOffering struct {
