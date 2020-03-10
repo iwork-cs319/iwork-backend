@@ -3,9 +3,9 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"go-api/model"
 	"net/http"
-	"testing"
 )
 
 var Workspace1 = &model.Workspace{
@@ -51,18 +51,12 @@ var Workspace7 = &model.Workspace{
 	Props: nil,
 }
 
-func testWorkspaceEndpoints(t *testing.T, app *App) {
-	testGetAvailable(t, app)
-	testGetOneWorkspace(t, app)
-	testGetOneWorkspaceFail(t, app)
-	testGetAllWorkspaces(t, app)
-}
-
-func testGetAvailable(t *testing.T, app *App) {
+func (suite *AppTestSuite) TestGetAvailable() {
+	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
 		Body:    nil,
-		Handler: app.GetAvailability,
+		Handler: suite.app.GetAvailability,
 		URL: fmt.Sprintf(
 			"/workspaces/available?floor=%s&start=%s&end=%s",
 			MainFloor.ID,
@@ -70,10 +64,8 @@ func testGetAvailable(t *testing.T, app *App) {
 			"1547596800",
 		),
 	})
-	if status := rr.Code; status != http.StatusOK {
-		t.Fatalf("testGetAvailable: handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assert.Equal(t, rr.Code, http.StatusOK, "status code")
+
 	var payload []*string
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
 	if len(payload) != 2 {
@@ -82,21 +74,19 @@ func testGetAvailable(t *testing.T, app *App) {
 
 }
 
-func testGetOneWorkspace(t *testing.T, app *App) {
+func (suite *AppTestSuite) TestGetOneWorkspace() {
 	workspaceId := Workspace1.ID
+	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
 		Body:    nil,
-		Handler: app.GetOneWorkspace,
+		Handler: suite.app.GetOneWorkspace,
 		URL:     fmt.Sprintf("/workspaces/%s", workspaceId),
 		URLParams: map[string]string{
 			"id": workspaceId,
 		},
 	})
-	if status := rr.Code; status != http.StatusOK {
-		t.Fatalf("testGetOneWorkspace: handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assert.Equal(t, rr.Code, http.StatusOK, "status code")
 
 	var payload *model.Workspace
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
@@ -105,36 +95,32 @@ func testGetOneWorkspace(t *testing.T, app *App) {
 	}
 }
 
-func testGetOneWorkspaceFail(t *testing.T, app *App) {
+func (suite *AppTestSuite) TestGetOneWorkspaceFail() {
 	workspaceId := "2"
+	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
 		Body:    nil,
-		Handler: app.GetOneWorkspace,
+		Handler: suite.app.GetOneWorkspace,
 		URL:     fmt.Sprintf("/workspaces/%s", workspaceId),
 		URLParams: map[string]string{
 			"id": workspaceId,
 		},
 	})
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Fatalf("testGetOneWorkspaceFail: handler returned wrong status code: got %v want %v",
-			status, http.StatusNotFound)
-	}
+	assert.Equal(t, rr.Code, http.StatusNotFound, "status code")
 }
 
-func testGetAllWorkspaces(t *testing.T, app *App) {
+func (suite *AppTestSuite) TestGetAllWorkspaces() {
+	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
 		Body:    nil,
-		Handler: app.GetAllWorkspaces,
+		Handler: suite.app.GetAllWorkspaces,
 		URL:     "/workspaces/",
 	})
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Fatalf("testGetAllWorkspace: handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assert.Equal(t, rr.Code, http.StatusOK, "status code")
 
 	// Check the response body is what we expect.
 	var payload []*model.Workspace

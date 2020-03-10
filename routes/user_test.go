@@ -3,9 +3,9 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"go-api/model"
 	"net/http"
-	"testing"
 )
 
 var UserBarry = &model.User{
@@ -37,46 +37,35 @@ var UserDiana = &model.User{
 	Email:      "",
 }
 
-// main entry point for user endpoints' tests
-func testUsersEndpoints(t *testing.T, app *App) {
-	testGetAllUsers(t, app)
-	testGetOneUser(t, app)
-	testGetOneUserFail(t, app)
-}
-
-func testGetOneUserFail(t *testing.T, app *App) {
+func (suite *AppTestSuite) TestGetOneUserFail() {
+	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
 		Body:    nil,
-		Handler: app.GetOneUser,
+		Handler: suite.app.GetOneUser,
 		URL:     fmt.Sprintf("/users/%s", "2"),
 		URLParams: map[string]string{
 			"id": "2",
 		},
 	})
 
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Fatalf("testGetOneUserFail: handler returned wrong status code: got %v want %v",
-			status, http.StatusNotFound)
-	}
+	assert.Equal(t, http.StatusNotFound, rr.Code, "status code")
 }
 
-func testGetOneUser(t *testing.T, app *App) {
+func (suite *AppTestSuite) TestGetOneUser() {
 	userId := UserBarry.ID
+	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
 		Body:    nil,
-		Handler: app.GetOneUser,
+		Handler: suite.app.GetOneUser,
 		URL:     fmt.Sprintf("/users/%s", userId),
 		URLParams: map[string]string{
 			"id": userId,
 		},
 	})
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Fatalf("testGetOneUser: handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assert.Equal(t, rr.Code, http.StatusOK, "status code")
 	var payload *model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
 	if !UserBarry.Equal(payload) {
@@ -84,18 +73,16 @@ func testGetOneUser(t *testing.T, app *App) {
 	}
 }
 
-func testGetAllUsers(t *testing.T, app *App) {
+func (suite *AppTestSuite) TestGetAllUsers() {
+	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
 		Body:    nil,
-		Handler: app.GetAllUsers,
+		Handler: suite.app.GetAllUsers,
 		URL:     "/users/",
 	})
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Fatalf("testGetAllUsers: handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assert.Equal(t, rr.Code, http.StatusOK, "status code")
 
 	var payload []*model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)

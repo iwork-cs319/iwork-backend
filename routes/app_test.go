@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/suite"
 	"go-api/db/postgres"
 	"io"
 	"log"
@@ -31,6 +32,19 @@ func executeReq(t *testing.T, config *testRouteConfig) *httptest.ResponseRecorde
 	return rr
 }
 
+type AppTestSuite struct {
+	suite.Suite
+	app *App
+}
+
+func (suite *AppTestSuite) SetupTest() {
+	suite.app = NewTestApp()
+}
+
+func TestApp(t *testing.T) {
+	suite.Run(t, new(AppTestSuite))
+}
+
 func NewTestApp() *App {
 	dbUrl := os.Getenv("TEST_DB_URL")
 	store, err := postgres.NewPostgresDataStore(dbUrl)
@@ -49,11 +63,4 @@ func NewTestApp() *App {
 		store:  store,
 		gDrive: nil,
 	}
-}
-
-func TestApp(t *testing.T) {
-	a := NewTestApp()
-	testUsersEndpoints(t, a)
-	testWorkspaceEndpoints(t, a)
-	//TODO add more here
 }
