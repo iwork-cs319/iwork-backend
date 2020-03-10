@@ -79,7 +79,7 @@ func testGetOneUser(t *testing.T, app *App) {
 	}
 	var payload *model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if *payload != *UserBarry {
+	if UserBarry.Equal(payload) {
 		t.Fatalf("testGetOneUser: incorrect user : got %s", payload.Name)
 	}
 }
@@ -106,7 +106,7 @@ func testGetAllUsers(t *testing.T, app *App) {
 	for _, expected := range expectedUsers {
 		found := false
 		for _, u := range payload {
-			if *expected == *u {
+			if u.Equal(expected) {
 				found = true
 			}
 		}
