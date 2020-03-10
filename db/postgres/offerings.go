@@ -164,7 +164,7 @@ func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) err
 func (p PostgresDBStore) RemoveOffering(id string) error {
 	sqlStatement :=
 		`UPDATE offerings
-				SET cancelled = false
+				SET cancelled = true
 				WHERE id = $1
 				RETURNING id;`
 	var _id string

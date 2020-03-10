@@ -167,7 +167,7 @@ func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) error 
 func (p PostgresDBStore) RemoveBooking(id string) error {
 	sqlStatement :=
 		`UPDATE bookings
-				SET cancelled = false
+				SET cancelled = true
 				WHERE id = $1
 				RETURNING id;`
 	var _id string
