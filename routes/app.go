@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"go-api/db"
 	"go-api/db/postgres"
 	"log"
@@ -37,8 +37,8 @@ func (app *App) Setup(port string) error {
 	app.router.HandleFunc("/", app.index)
 	app.RegisterRoutes()
 	log.Println("App running at port:", port)
-	corsObj := handlers.AllowedOrigins([]string{"*"})
-	return http.ListenAndServe(":"+port, handlers.CORS(corsObj)(app.router))
+	handler := cors.AllowAll().Handler(app.router)
+	return http.ListenAndServe(":"+port, handler)
 }
 
 func (app *App) RegisterRoutes() {
