@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go-api/db/postgres"
 	"go-api/utils"
@@ -20,6 +21,7 @@ type testRouteConfig struct {
 	Body      io.Reader
 	URLParams map[string]string
 	Handler   func(http.ResponseWriter, *http.Request)
+	Headers   map[string]string
 }
 
 func executeReq(t *testing.T, config *testRouteConfig) *httptest.ResponseRecorder {
@@ -28,6 +30,9 @@ func executeReq(t *testing.T, config *testRouteConfig) *httptest.ResponseRecorde
 		t.Fatal(err)
 	}
 	req = mux.SetURLVars(req, config.URLParams)
+	for hKey, hVal := range config.Headers {
+		req.Header.Add(hKey, hVal)
+	}
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(config.Handler)
 	handler.ServeHTTP(rr, req)
@@ -49,26 +54,6 @@ func (suite *AppTestSuite) SetupSuite() {
 
 func TestApp(t *testing.T) {
 	suite.Run(t, new(AppTestSuite))
-}
-
-func NewTestApp() *App {
-	dbUrl := os.Getenv("TEST_DB_URL")
-	store, err := postgres.NewPostgresDataStore(dbUrl)
-	if err != nil {
-		log.Println("Failed to connect to database")
-		log.Fatal(err)
-	}
-	//gDriveConfig := os.Getenv("G_DRIVE_CREDENTIALS")
-	//driveClient, err := db.NewDriveClient(gDriveConfig)
-	//if err != nil {
-	//	log.Println("Failed to connect to google drive")
-	//	log.Fatal(err)
-	//}
-	return &App{
-		router: mux.NewRouter().StrictSlash(true),
-		store:  store,
-		gDrive: nil,
-	}
 }
 
 func buildTestDB(t *testing.T, dbUrl string) error {
@@ -119,4 +104,28 @@ func execStmts(tx *sql.Tx, fileName string) error {
 		}
 	}
 	return nil
+}
+
+// MOCKS
+type mockDrive struct {
+	mock.Mock
+}
+
+func (m *mockDrive) UploadFloorPlan(name string, content io.Reader) (string, error) {
+	args := m.Called(name)
+	return args.String(0), args.Error(1)
+}
+
+func NewTestApp() *App {
+	dbUrl := os.Getenv("TEST_DB_URL")
+	store, err := postgres.NewPostgresDataStore(dbUrl)
+	if err != nil {
+		log.Println("Failed to connect to database")
+		log.Fatal(err)
+	}
+	return &App{
+		router: mux.NewRouter().StrictSlash(true),
+		store:  store,
+		gDrive: nil,
+	}
 }

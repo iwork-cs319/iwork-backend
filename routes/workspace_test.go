@@ -68,10 +68,7 @@ func (suite *AppTestSuite) TestGetAvailable() {
 
 	var payload []*string
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if len(payload) != 2 {
-		t.Fatalf("testGetAvailable: expected 2 workspaces got %d", len(payload))
-	}
-
+	assert.Equal(t, 2, len(payload), "incorrect response size")
 }
 
 func (suite *AppTestSuite) TestGetOneWorkspace() {
@@ -90,9 +87,7 @@ func (suite *AppTestSuite) TestGetOneWorkspace() {
 
 	var payload *model.Workspace
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if !Workspace1.Equal(payload) {
-		t.Fatalf("testGetOneWorkspace: incorrect workspace : got %s", payload.Name)
-	}
+	assert.Equal(t, Workspace1, payload, "incorrect response object")
 }
 
 func (suite *AppTestSuite) TestGetOneWorkspaceFail() {
@@ -125,19 +120,12 @@ func (suite *AppTestSuite) TestGetAllWorkspaces() {
 	// Check the response body is what we expect.
 	var payload []*model.Workspace
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if len(payload) != 7 {
-		t.Fatalf("testGetAllWorkspace: incorrect number of workspaces: got %d users", len(payload))
-	}
-	expectedWorkspaces := []*model.Workspace{Workspace1, Workspace2, Workspace3, Workspace4, Workspace5, Workspace6, Workspace7}
-	for _, expected := range expectedWorkspaces {
-		found := false
-		for _, workspace := range payload {
-			if expected.Equal(workspace) {
-				found = true
-			}
-		}
-		if !found {
-			t.Fatalf("testGetAllWorkspace: %s not found in user list", expected)
-		}
-	}
+	assert.Equal(t, 7, len(payload), "incorrect response size")
+	assert.Contains(t, payload, Workspace1, "doesnt contain workspace1")
+	assert.Contains(t, payload, Workspace2, "doesnt contain workspace2")
+	assert.Contains(t, payload, Workspace3, "doesnt contain workspace3")
+	assert.Contains(t, payload, Workspace4, "doesnt contain workspace4")
+	assert.Contains(t, payload, Workspace5, "doesnt contain workspace5")
+	assert.Contains(t, payload, Workspace6, "doesnt contain workspace6")
+	assert.Contains(t, payload, Workspace7, "doesnt contain workspace7")
 }

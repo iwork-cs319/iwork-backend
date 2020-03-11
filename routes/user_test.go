@@ -68,9 +68,7 @@ func (suite *AppTestSuite) TestGetOneUser() {
 	assert.Equal(t, rr.Code, http.StatusOK, "status code")
 	var payload *model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if !UserBarry.Equal(payload) {
-		t.Fatalf("testGetOneUser: incorrect user : got %s", payload.Name)
-	}
+	assert.Equal(t, UserBarry, payload, "incorrect response object")
 }
 
 func (suite *AppTestSuite) TestGetAllUsers() {
@@ -86,19 +84,9 @@ func (suite *AppTestSuite) TestGetAllUsers() {
 
 	var payload []*model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	if len(payload) != 4 {
-		t.Fatalf("testGetAllUsers: incorrect number of users: got %d users", len(payload))
-	}
-	expectedUsers := []*model.User{UserBarry, UserBruce, UserClark, UserDiana}
-	for _, expected := range expectedUsers {
-		found := false
-		for _, u := range payload {
-			if u.Equal(expected) {
-				found = true
-			}
-		}
-		if !found {
-			t.Fatalf("testGetAllUsers: %s not found in user list", expected.Name)
-		}
-	}
+	assert.Equal(t, 4, len(payload), "incorrect response size")
+	assert.Contains(t, payload, UserBarry, "doesnt contain barry")
+	assert.Contains(t, payload, UserDiana, "doesnt contain diana")
+	assert.Contains(t, payload, UserClark, "doesnt contain clark")
+	assert.Contains(t, payload, UserBruce, "doesnt contain bruce")
 }
