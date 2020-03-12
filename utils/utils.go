@@ -12,7 +12,7 @@ func TimeStampToTime(timestamp string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	tm := time.Unix(i, 0)
+	tm := time.Unix(i, 0).UTC()
 	return tm, err
 }
 

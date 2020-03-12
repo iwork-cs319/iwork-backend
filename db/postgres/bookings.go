@@ -143,17 +143,18 @@ func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
 func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) error {
 	sqlStatement :=
 		`UPDATE bookings
-				SET user_id = $2, workspace_id = $3, cancelled = $4, start_time = $5, end_time = $6
+				SET user_id = $2, workspace_id = $3, cancelled = $4, start_time = $5, end_time = $6, created_by = $7
 				WHERE id = $1
 				RETURNING id;`
 	var _id string
 	err := p.database.QueryRow(sqlStatement,
 		id,
 		booking.UserID,
-		booking.UserID,
+		booking.WorkspaceID,
 		booking.Cancelled,
 		booking.StartDate,
 		booking.EndDate,
+		booking.CreatedBy,
 	).Scan(&_id)
 	if err != nil {
 		return err

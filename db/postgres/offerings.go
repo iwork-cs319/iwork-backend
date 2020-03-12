@@ -137,34 +137,35 @@ func (p PostgresDBStore) CreateOffering(offering *model.Offering) (string, error
 	return id, nil
 }
 
-func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) error {
+func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) (string, error) {
 	sqlStatement :=
 		`UPDATE offerings
-				SET user_id = $2, workspace_id = $3, cancelled = $4, start_time = $5, end_time = $6
+				SET user_id = $2, workspace_id = $3, cancelled = $4, start_time = $5, end_time = $6, created_by = $7
 				WHERE id = $1
 				RETURNING id;`
 	var _id string
 	err := p.database.QueryRow(sqlStatement,
 		id,
 		offering.UserID,
-		offering.UserID,
+		offering.WorkspaceID,
 		offering.Cancelled,
 		offering.StartDate,
 		offering.EndDate,
+		offering.CreatedBy,
 	).Scan(&_id)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if _id != id {
-		return CreateError
+		return "", CreateError
 	}
-	return nil
+	return id, nil
 }
 
 func (p PostgresDBStore) RemoveOffering(id string) error {
 	sqlStatement :=
 		`UPDATE offerings
-				SET cancelled = false
+				SET cancelled = true
 				WHERE id = $1
 				RETURNING id;`
 	var _id string

@@ -132,7 +132,6 @@ func (app *App) GetAllOfferings(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) GetOfferingsByWorkspaceID(w http.ResponseWriter, r *http.Request) {
 	workspaceID := mux.Vars(r)["workspace_id"]
-
 	if workspaceID == "" {
 		log.Printf("App.GetOneOffering - empty offering id")
 		w.WriteHeader(http.StatusBadRequest)
@@ -207,9 +206,11 @@ func (app *App) GetOfferingsByUserID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetOfferingsByDateRange(w http.ResponseWriter, r *http.Request) {
-	queryParams := r.URL.Query()
-	start := queryParams["start"][0]
-	end := queryParams["end"][0]
+	//queryParams := r.URL.Query()
+	//start := queryParams["start"][0]
+	//end := queryParams["end"][0]
+	start := r.FormValue("start")
+	end := r.FormValue("end")
 	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
 	endTime, errEnd := utils.TimeStampToTime(end)
 	if errStart != nil {
@@ -274,12 +275,15 @@ func (app *App) UpdateOffering(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.store.OfferingProvider.UpdateOffering(offeringID, &updatedOffering)
+	id, err := app.store.OfferingProvider.UpdateOffering(offeringID, &updatedOffering)
 	if err != nil {
 		log.Printf("App.UpdateOffering - error getting all offerings from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	updatedOffering.ID = id;
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedOffering)
 }
 
 func (app *App) RemoveOffering(w http.ResponseWriter, r *http.Request) {
