@@ -51,6 +51,11 @@ type Floor struct {
 	DownloadURL string `json:"download_url"`
 }
 
+func (this *Floor) Equal(other *Floor) bool {
+	return this.ID == other.ID && this.Name == other.Name &&
+		this.DownloadURL == other.DownloadURL
+}
+
 type Offering struct {
 	ID          string    `json:"id"`
 	WorkspaceID string    `json:"workspace_id"`

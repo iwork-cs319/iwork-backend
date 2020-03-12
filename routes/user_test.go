@@ -1,11 +1,16 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go-api/model"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
 )
 
 var UserBarry = &model.User{
@@ -65,7 +70,7 @@ func (suite *AppTestSuite) TestGetOneUser() {
 		},
 	})
 
-	assert.Equal(t, rr.Code, http.StatusOK, "status code")
+	require.Equal(t, rr.Code, http.StatusOK, "status code")
 	var payload *model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
 	assert.Equal(t, UserBarry, payload, "incorrect response object")
@@ -80,7 +85,7 @@ func (suite *AppTestSuite) TestGetAllUsers() {
 		URL:     "/users/",
 	})
 
-	assert.Equal(t, rr.Code, http.StatusOK, "status code")
+	require.Equal(t, rr.Code, http.StatusOK, "status code")
 
 	var payload []*model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
@@ -89,4 +94,137 @@ func (suite *AppTestSuite) TestGetAllUsers() {
 	assert.Contains(t, payload, UserDiana, "doesnt contain diana")
 	assert.Contains(t, payload, UserClark, "doesnt contain clark")
 	assert.Contains(t, payload, UserBruce, "doesnt contain bruce")
+}
+
+// Run after
+func (suite *AppTestSuite) Test_CreateUsers() {
+	t := suite.T()
+	body := new(bytes.Buffer)
+	file, err := os.Open("../test-fixtures/users.csv")
+	if err != nil {
+		t.Fatalf("failed to open file")
+	}
+	fileContents, _ := ioutil.ReadAll(file)
+
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("users", "users.csv")
+	_, _ = part.Write(fileContents)
+	_ = writer.Close()
+
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodPost,
+		Body:    body,
+		Handler: suite.app.CreateUsers,
+		URL:     "/users/",
+		Headers: map[string]string{
+			"Content-Type": writer.FormDataContentType(),
+		},
+	})
+	if !assert.Equal(t, http.StatusCreated, rr.Code, "status code") {
+		return
+	}
+
+	var payload []*model.User
+	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
+	assert.Equal(t, 1, len(payload), "incorrect response size")
+	user := payload[0]
+	assert.Equal(t, "3f9fc7c0-d675-40be-9ad1-9babfad625d7", user.ID)
+	assert.Equal(t, "fake_user@iworkcs319.onmicrosoft.com", user.Email)
+	assert.Equal(t, "Fake User", user.Name)
+	assert.Equal(t, "Operations", user.Department)
+	assert.False(t, user.IsAdmin)
+}
+
+func (suite *AppTestSuite) Test_CreateUsersEmptyFile() {
+	t := suite.T()
+	body := new(bytes.Buffer)
+
+	writer := multipart.NewWriter(body)
+
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodPost,
+		Body:    body,
+		Handler: suite.app.CreateUsers,
+		URL:     "/users/",
+		Headers: map[string]string{
+			"Content-Type": writer.FormDataContentType(),
+		},
+	})
+	if !assert.Equal(t, http.StatusBadRequest, rr.Code, "status code") {
+		return
+	}
+}
+
+func (suite *AppTestSuite) Test_CreateUsersBadContentType() {
+	t := suite.T()
+	body := new(bytes.Buffer)
+
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodPost,
+		Body:    body,
+		Handler: suite.app.CreateUsers,
+		URL:     "/users/",
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+	})
+	if !assert.Equal(t, http.StatusBadRequest, rr.Code, "status code") {
+		return
+	}
+}
+
+func (suite *AppTestSuite) Test_CreateUsersBadFile() {
+	t := suite.T()
+	body := new(bytes.Buffer)
+	file, err := os.Open("../test-fixtures/workspaces.csv")
+	if err != nil {
+		t.Fatalf("failed to open file")
+	}
+	fileContents, _ := ioutil.ReadAll(file)
+
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("users", "users.csv")
+	_, _ = part.Write(fileContents)
+	_ = writer.Close()
+
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodPost,
+		Body:    body,
+		Handler: suite.app.CreateUsers,
+		URL:     "/users/",
+		Headers: map[string]string{
+			"Content-Type": writer.FormDataContentType(),
+		},
+	})
+	if !assert.Equal(t, http.StatusBadRequest, rr.Code, "status code") {
+		return
+	}
+}
+
+func (suite *AppTestSuite) Test_CreateUsersBadFile2() {
+	t := suite.T()
+	body := new(bytes.Buffer)
+	file, err := os.Open("../test-fixtures/test-img.jpg")
+	if err != nil {
+		t.Fatalf("failed to open file")
+	}
+	fileContents, _ := ioutil.ReadAll(file)
+
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("users", "users.csv")
+	_, _ = part.Write(fileContents)
+	_ = writer.Close()
+
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodPost,
+		Body:    body,
+		Handler: suite.app.CreateUsers,
+		URL:     "/users/",
+		Headers: map[string]string{
+			"Content-Type": writer.FormDataContentType(),
+		},
+	})
+	if !assert.Equal(t, http.StatusBadRequest, rr.Code, "status code") {
+		return
+	}
 }

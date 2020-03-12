@@ -4,9 +4,16 @@ run:
 	PORT=8000 \
     go run .
 
-test:
+test: test-routes test-db
+
+test-routes:
 	TEST_DB_URL=$$(heroku config:get HEROKU_POSTGRESQL_AQUA_URL -a icbc-go-api) \
 	G_DRIVE_CREDENTIALS=$$(heroku config:get G_DRIVE_CREDENTIALS -a icbc-go-api) \
- 	go test -cover -race ./...
+ 	go test -count=1 -cover -race ./routes/...
 
-.PHONY: run run-db
+test-db:
+	TEST_DB_URL=$$(heroku config:get HEROKU_POSTGRESQL_AQUA_URL -a icbc-go-api) \
+	G_DRIVE_CREDENTIALS=$$(heroku config:get G_DRIVE_CREDENTIALS -a icbc-go-api) \
+ 	go test -count=1 -cover -race ./db/...
+
+.PHONY: run

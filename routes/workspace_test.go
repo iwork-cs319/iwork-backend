@@ -1,9 +1,11 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go-api/model"
 	"net/http"
 )
@@ -64,7 +66,7 @@ func (suite *AppTestSuite) TestGetAvailable() {
 			"1547596800",
 		),
 	})
-	assert.Equal(t, rr.Code, http.StatusOK, "status code")
+	require.Equal(t, rr.Code, http.StatusOK, "status code")
 
 	var payload []*string
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
@@ -83,7 +85,7 @@ func (suite *AppTestSuite) TestGetOneWorkspace() {
 			"id": workspaceId,
 		},
 	})
-	assert.Equal(t, rr.Code, http.StatusOK, "status code")
+	require.Equal(t, rr.Code, http.StatusOK, "status code")
 
 	var payload *model.Workspace
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
@@ -102,7 +104,7 @@ func (suite *AppTestSuite) TestGetOneWorkspaceFail() {
 			"id": workspaceId,
 		},
 	})
-	assert.Equal(t, rr.Code, http.StatusNotFound, "status code")
+	require.Equal(t, rr.Code, http.StatusNotFound, "status code")
 }
 
 func (suite *AppTestSuite) TestGetAllWorkspaces() {
@@ -115,7 +117,7 @@ func (suite *AppTestSuite) TestGetAllWorkspaces() {
 	})
 
 	// Check the status code is what we expect.
-	assert.Equal(t, rr.Code, http.StatusOK, "status code")
+	require.Equal(t, rr.Code, http.StatusOK, "status code")
 
 	// Check the response body is what we expect.
 	var payload []*model.Workspace
@@ -128,4 +130,66 @@ func (suite *AppTestSuite) TestGetAllWorkspaces() {
 	assert.Contains(t, payload, Workspace5, "doesnt contain workspace5")
 	assert.Contains(t, payload, Workspace6, "doesnt contain workspace6")
 	assert.Contains(t, payload, Workspace7, "doesnt contain workspace7")
+}
+
+func (suite *AppTestSuite) TestZZCrUDWorkspace() {
+	t := suite.T()
+	newWorkspace := &model.Workspace{
+		Name:  "fake-workspace",
+		Floor: MainFloor.ID,
+		Props: nil,
+	}
+	body := new(bytes.Buffer)
+	datum, _ := json.Marshal(newWorkspace)
+	body.Write(datum)
+
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodPost,
+		Body:    body,
+		Handler: suite.app.CreateWorkspace,
+		URL:     "/users/",
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+	})
+	if !assert.Equal(t, http.StatusCreated, rr.Code, "failed to create") {
+		return
+	}
+	var payload *model.Workspace
+	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
+	assert.NotEmpty(t, payload.ID)
+	assert.Equal(t, newWorkspace.Name, payload.Name)
+	assert.Equal(t, newWorkspace.Floor, payload.Floor)
+	assert.Equal(t, newWorkspace.Props, payload.Props)
+
+	updatedWorkspace := &model.Workspace{
+		Name:  "updated-workspace",
+		Floor: MainFloor.ID,
+		Props: nil,
+	}
+	body = new(bytes.Buffer)
+	datum, _ = json.Marshal(updatedWorkspace)
+	body.Write(datum)
+
+	rr = executeReq(t, &testRouteConfig{
+		Method:  http.MethodPatch,
+		Body:    body,
+		Handler: suite.app.UpdateWorkspace,
+		URL:     fmt.Sprintf("/users/%s", payload.ID),
+		URLParams: map[string]string{
+			"id": payload.ID,
+		},
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+	})
+	if !assert.Equal(t, http.StatusOK, rr.Code, "failed to update") {
+		return
+	}
+	var payloadUpdate *model.Workspace
+	_ = json.Unmarshal(rr.Body.Bytes(), &payloadUpdate)
+	assert.Equal(t, payload.ID, payloadUpdate.ID) // check if uuid is the same
+	assert.Equal(t, updatedWorkspace.Name, payloadUpdate.Name)
+	assert.Equal(t, updatedWorkspace.Floor, payloadUpdate.Floor)
+	assert.Equal(t, updatedWorkspace.Props, payloadUpdate.Props)
 }

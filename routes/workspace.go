@@ -23,7 +23,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
 	app.router.HandleFunc("/workspaces", app.GetAllWorkspaces).Methods("GET")
 	app.router.HandleFunc("/workspaces/{id}", app.UpdateWorkspace).Methods("PATCH")
-	app.router.HandleFunc("/workspaces/{id}", app.DeleteWorkspace).Methods("DELETE")
+	//app.router.HandleFunc("/workspaces/{id}", app.DeleteWorkspace).Methods("DELETE")
 	app.router.HandleFunc("/assignments", app.CreateAssignments).Methods("POST")
 }
 
@@ -113,25 +113,27 @@ func (app *App) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-}
-
-func (app *App) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
-	workspaceID := mux.Vars(r)["id"]
-
-	if workspaceID == "" {
-		log.Printf("App.DeleteWorkspace - empty workspace id")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	err := app.store.WorkspaceProvider.RemoveWorkspace(workspaceID)
-	if err != nil {
-		log.Printf("App.DeleteWorkspace - error getting all workspaces from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedWorkspace)
 }
+
+//func (app *App) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
+//	workspaceID := mux.Vars(r)["id"]
+//
+//	if workspaceID == "" {
+//		log.Printf("App.DeleteWorkspace - empty workspace id")
+//		w.WriteHeader(http.StatusBadRequest)
+//		return
+//	}
+//
+//	err := app.store.WorkspaceProvider.RemoveWorkspace(workspaceID)
+//	if err != nil {
+//		log.Printf("App.DeleteWorkspace - error getting all workspaces from provider %v", err)
+//		w.WriteHeader(http.StatusNotFound)
+//		return
+//	}
+//	w.WriteHeader(http.StatusOK)
+//}
 
 func (app *App) GetAvailability(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
@@ -204,7 +206,7 @@ func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
 		if err == io.EOF {
 			break
 		}
-		if err != nil {
+		if err != nil || len(record) != 3 {
 			log.Println("App.CreateAssignments - failed to parse csv file")
 			w.WriteHeader(http.StatusBadRequest)
 			return

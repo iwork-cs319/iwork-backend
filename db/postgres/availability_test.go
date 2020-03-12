@@ -1,6 +1,11 @@
 package postgres
 
 import (
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"go-api/db"
+	"go-api/utils"
+	"os"
 	"testing"
 	"time"
 )
@@ -16,31 +21,42 @@ const (
 	Workspace7  = "3361d373-781a-34d7-bbb8-c7d562a0cf51"
 )
 
+type AvailabilityTestSuite struct {
+	suite.Suite
+	store *db.DataStore
+}
+
+func (suite *AvailabilityTestSuite) SetupSuite() {
+	dbUrl := os.Getenv("TEST_DB_URL")
+	fixtures := []string{
+		"../../resources/tables.sql",
+		"../../test-fixtures/floors.sql",
+		"../../test-fixtures/users.sql",
+		"../../test-fixtures/workspaces.sql",
+		"../../test-fixtures/book_offer.sql",
+	}
+	if err := utils.RunFixturesOnDB(dbUrl, fixtures); err != nil {
+		suite.FailNow("failed to re-seed test db")
+	}
+	store, err := NewPostgresDataStore(dbUrl)
+	if err != nil {
+		suite.FailNow("failed to connect to DB" + err.Error())
+	}
+	suite.store = store
+}
+
+func TestAvailability(t *testing.T) {
+	suite.Run(t, new(AvailabilityTestSuite))
+}
+
 func date(str string) time.Time {
 	parse, _ := time.Parse(time.RFC3339, str)
 	return parse
 }
 
-func testArrayEquality(t *testing.T, arr1, arr2 []string) {
-	if len(arr1) != len(arr2) {
-		t.Fatalf("arrays of different length, arr1=%s, arr2=%s", arr1, arr2)
-	}
-	for _, e1 := range arr1 {
-		found := false
-		for _, e2 := range arr2 {
-			if e1 == e2 {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("%s not found in arr1=%s, arr2=%s", e1, arr1, arr2)
-		}
-	}
-}
-
-func TestFindAvailability1(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability1() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-13T00:00:00Z"),
@@ -49,11 +65,14 @@ func TestFindAvailability1(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{Workspace2, Workspace7})
+	assert.Equal(t, 2, len(ids))
+	assert.Contains(t, ids, Workspace2)
+	assert.Contains(t, ids, Workspace7)
 }
 
-func TestFindAvailability2(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability2() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-13T00:00:00Z"),
@@ -62,11 +81,13 @@ func TestFindAvailability2(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{Workspace7})
+	assert.Equal(t, 1, len(ids))
+	assert.Contains(t, ids, Workspace7)
 }
 
-func TestFindAvailability3(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability3() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-15T00:00:00Z"),
@@ -75,11 +96,16 @@ func TestFindAvailability3(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{Workspace2, Workspace3, Workspace7})
+
+	assert.Equal(t, 3, len(ids))
+	assert.Contains(t, ids, Workspace2)
+	assert.Contains(t, ids, Workspace3)
+	assert.Contains(t, ids, Workspace7)
 }
 
-func TestFindAvailability4(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability4() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-19T00:00:00Z"),
@@ -88,11 +114,16 @@ func TestFindAvailability4(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{Workspace1, Workspace2, Workspace6})
+
+	assert.Equal(t, 3, len(ids))
+	assert.Contains(t, ids, Workspace1)
+	assert.Contains(t, ids, Workspace2)
+	assert.Contains(t, ids, Workspace6)
 }
 
-func TestFindAvailability5(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability5() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-24T00:00:00Z"),
@@ -101,11 +132,15 @@ func TestFindAvailability5(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{Workspace2, Workspace3})
+
+	assert.Equal(t, 2, len(ids))
+	assert.Contains(t, ids, Workspace2)
+	assert.Contains(t, ids, Workspace3)
 }
 
-func TestFindAvailability6(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability6() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-22T00:00:00Z"),
@@ -114,11 +149,16 @@ func TestFindAvailability6(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{Workspace3, Workspace5, Workspace7})
+
+	assert.Equal(t, 3, len(ids))
+	assert.Contains(t, ids, Workspace3)
+	assert.Contains(t, ids, Workspace5)
+	assert.Contains(t, ids, Workspace7)
 }
 
-func TestFindAvailability8(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability8() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-17T00:00:00Z"),
@@ -127,11 +167,15 @@ func TestFindAvailability8(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{Workspace1, Workspace6})
+
+	assert.Equal(t, 2, len(ids))
+	assert.Contains(t, ids, Workspace1)
+	assert.Contains(t, ids, Workspace6)
 }
 
-func TestFindAvailability9(t *testing.T) {
-	store := CreateTestDBConn(t)
+func (suite *AvailabilityTestSuite) TestFindAvailability9() {
+	store := suite.store
+	t := suite.T()
 	ids, err := store.WorkspaceProvider.FindAvailability(
 		MainFloorId,
 		date("2019-01-17T00:00:00Z"),
@@ -140,5 +184,5 @@ func TestFindAvailability9(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting ids", err)
 	}
-	testArrayEquality(t, ids, []string{})
+	assert.Equal(t, 0, len(ids))
 }
