@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 )
 
-func OfferingEqualMinusID(this *model.Offering, other *model.Offering) bool { // To be used when testing Creation, as ID will not be known in advance.
+func offeringEqualMinusID(this *model.Offering, other *model.Offering) bool { // To be used when testing Creation, as ID will not be known in advance.
 	return this.WorkspaceID == other.WorkspaceID &&
 		this.UserID == other.UserID && this.StartDate == other.StartDate &&
 		this.EndDate == other.EndDate && this.Cancelled == other.Cancelled && this.CreatedBy == other.CreatedBy
@@ -309,7 +309,7 @@ func (suite *AppTestSuite) Test_CreateOffering() {
 	var payload []*model.Offering
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
 	for _, o := range payload {
-		if OfferingEqualMinusID(newOffering, o) {
+		if offeringEqualMinusID(newOffering, o) {
 			t.Fatalf("testCreateOffering: %s found in offering list, when it should not exist", newOffering.ID)
 		}
 	}

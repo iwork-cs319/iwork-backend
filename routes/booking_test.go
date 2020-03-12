@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 )
 
-func BookingEqualMinusID(this *model.Booking, other *model.Booking) bool { // To be used when testing Creation, as ID will not be known in advance.
+func bookingEqualMinusID(this *model.Booking, other *model.Booking) bool { // To be used when testing Creation, as ID will not be known in advance.
 	return this.WorkspaceID == other.WorkspaceID &&
 		this.UserID == other.UserID && this.StartDate == other.StartDate &&
 		this.EndDate == other.EndDate && this.Cancelled == other.Cancelled && this.CreatedBy == other.CreatedBy
@@ -323,7 +323,7 @@ func (suite *AppTestSuite) Test_CreateBooking() {
 	var payload []*model.Booking
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
 	for _, b := range payload {
-		if BookingEqualMinusID(newBooking, b) {
+		if bookingEqualMinusID(newBooking, b) {
 			t.Fatalf("testCreateBooking: %s found in booking list, when it should not exist", newBooking.ID)
 		}
 	}
