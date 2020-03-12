@@ -208,8 +208,9 @@ func (app *App) GetBookingsByUserID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
-	start := r.FormValue("start")
-	end := r.FormValue("end")
+	queryParams := r.URL.Query()
+	start := queryParams["start"][0]
+	end := queryParams["end"][0]
 	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
 	endTime, errEnd := utils.TimeStampToTime(end)
 	if errStart != nil {

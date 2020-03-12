@@ -9,7 +9,6 @@ import (
 	"go-api/utils"
 	"log"
 	"net/http"
-	"net/http/httptest"
 )
 
 func offeringEqualMinusID(this *model.Offering, other *model.Offering) bool { // To be used when testing Creation, as ID will not be known in advance.
@@ -255,18 +254,16 @@ func (suite *AppTestSuite) TestGetOfferingsByDateRange() {
 	offeringStart := "1547337600"
 	offeringEnd := "1547510399"
 	t := suite.T()
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/offerings?%s&%s", offeringStart, offeringEnd), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	q := req.URL.Query()
-	q.Add("start", offeringStart)
-	q.Add("end", offeringEnd)
-	req.URL.RawQuery = q.Encode()
-	//req = mux.SetURLVars(req, config.URLParams)
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(suite.app.GetOfferingsByDateRange)
-	handler.ServeHTTP(rr, req)
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodGet,
+		Body:    nil,
+		Handler: suite.app.GetOfferingsByDateRange,
+		URL: fmt.Sprintf(
+			"/offerings?start=%s&end=%s",
+			offeringStart,
+			offeringEnd,
+		),
+	})
 	assert.Equal(t, rr.Code, http.StatusOK, "status code")
 	var payload []*model.Offering
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)

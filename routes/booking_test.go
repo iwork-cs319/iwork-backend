@@ -9,7 +9,6 @@ import (
 	"go-api/utils"
 	"log"
 	"net/http"
-	"net/http/httptest"
 )
 
 func bookingEqualMinusID(this *model.Booking, other *model.Booking) bool { // To be used when testing Creation, as ID will not be known in advance.
@@ -155,18 +154,25 @@ func (suite *AppTestSuite) TestGetAllBookings() {
 	var payload []*model.Booking
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
 	assert.Equal(t, 13, len(payload), "testGetAllBookings: incorrect response size")
-	expectedBookings := []*model.Booking{Booking1, Booking2, Booking3, Booking4, Booking5, Booking6, Booking7}
-	for _, expected := range expectedBookings {
-		found := false
-		for _, b := range payload {
-			if b.Equal(expected) {
-				found = true
-			}
-		}
-		if !found {
-			t.Fatalf("testGetAllBookings: %s not found in offring list", expected.ID)
-		}
-	}
+	assert.Contains(t, payload, Booking1)
+	assert.Contains(t, payload, Booking2)
+	assert.Contains(t, payload, Booking3)
+	assert.Contains(t, payload, Booking4)
+	assert.Contains(t, payload, Booking5)
+	assert.Contains(t, payload, Booking6)
+	assert.Contains(t, payload, Booking7)
+	//expectedBookings := []*model.Booking{Booking1, Booking2, Booking3, Booking4, Booking5, Booking6, Booking7}
+	//for _, expected := range expectedBookings {
+	//	found := false
+	//	for _, b := range payload {
+	//		if b.Equal(expected) {
+	//			found = true
+	//		}
+	//	}
+	//	if !found {
+	//		t.Fatalf("testGetAllBookings: %s not found in offring list", expected.ID)
+	//	}
+	//}
 }
 
 func (suite *AppTestSuite) TestGetOneBookingByWorkspaceIDFail() {
@@ -265,22 +271,19 @@ func (suite *AppTestSuite) TestGetBookingsByDateRange() {
 	bookingStart := "1548547200"
 	bookingEnd := "1548719999"
 	t := suite.T()
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/bookings?%s&%s", bookingStart, bookingEnd), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	q := req.URL.Query()
-	q.Add("start", bookingStart)
-	q.Add("end", bookingEnd)
-	req.URL.RawQuery = q.Encode()
-	//req = mux.SetURLVars(req, config.URLParams)
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(suite.app.GetBookingsByDateRange)
-	handler.ServeHTTP(rr, req)
+	rr := executeReq(t, &testRouteConfig{
+		Method:  http.MethodGet,
+		Body:    nil,
+		Handler: suite.app.GetBookingsByDateRange,
+		URL: fmt.Sprintf(
+			"/bookings?start=%s&end=%s",
+			bookingStart,
+			bookingEnd,
+		),
+	})
 	assert.Equal(t, rr.Code, http.StatusOK, "status code")
 	var payload []*model.Booking
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	log.Printf("HERE'S THE ID'S")
 	for _, p := range payload {
 		log.Printf(p.ID)
 	}
