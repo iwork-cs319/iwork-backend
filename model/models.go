@@ -73,12 +73,6 @@ func (this *Offering) Equal(other *Offering) bool {
 		this.EndDate == other.EndDate && this.Cancelled == other.Cancelled && this.CreatedBy == other.CreatedBy
 }
 
-func (this *Offering) EqualMinusID(other *Offering) bool { // To be used when testing Creation, as ID will not be known in advance.
-	return this.WorkspaceID == other.WorkspaceID &&
-		this.UserID == other.UserID && this.StartDate == other.StartDate &&
-		this.EndDate == other.EndDate && this.Cancelled == other.Cancelled && this.CreatedBy == other.CreatedBy
-}
-
 type ExpandedOffering struct {
 	Offering
 	WorkspaceName string `json:"workspace_name"`

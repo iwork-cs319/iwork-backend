@@ -206,9 +206,6 @@ func (app *App) GetOfferingsByUserID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetOfferingsByDateRange(w http.ResponseWriter, r *http.Request) {
-	//queryParams := r.URL.Query()
-	//start := queryParams["start"][0]
-	//end := queryParams["end"][0]
 	start := r.FormValue("start")
 	end := r.FormValue("end")
 	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
@@ -281,7 +278,7 @@ func (app *App) UpdateOffering(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	updatedOffering.ID = id;
+	updatedOffering.ID = id
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updatedOffering)
 }

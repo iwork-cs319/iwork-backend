@@ -208,9 +208,8 @@ func (app *App) GetBookingsByUserID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetBookingsByDateRange(w http.ResponseWriter, r *http.Request) {
-	queryParams := r.URL.Query()
-	start := queryParams["start"][0]
-	end := queryParams["end"][0]
+	start := r.FormValue("start")
+	end := r.FormValue("end")
 	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
 	endTime, errEnd := utils.TimeStampToTime(end)
 	if errStart != nil {
@@ -276,12 +275,15 @@ func (app *App) UpdateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.store.BookingProvider.UpdateBooking(bookingID, &updatedBooking)
+	id, err := app.store.BookingProvider.UpdateBooking(bookingID, &updatedBooking)
 	if err != nil {
 		log.Printf("App.UpdateBooking - error getting all bookings from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	updatedBooking.ID = id
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedBooking)
 }
 
 func (app *App) RemoveBooking(w http.ResponseWriter, r *http.Request) {
