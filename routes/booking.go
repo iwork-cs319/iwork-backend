@@ -264,6 +264,7 @@ func (app *App) UpdateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 	var updatedBooking model.Booking
 	reqBody, err := ioutil.ReadAll(r.Body)
+	updatedBooking.ID = bookingID
 	if err != nil {
 		log.Printf("App.UpdateBooking - error reading request body %v", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -276,13 +277,12 @@ func (app *App) UpdateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := app.store.BookingProvider.UpdateBooking(bookingID, &updatedBooking)
+	err = app.store.BookingProvider.UpdateBooking(bookingID, &updatedBooking)
 	if err != nil {
 		log.Printf("App.UpdateBooking - error getting all bookings from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	updatedBooking.ID = id
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updatedBooking)
 }

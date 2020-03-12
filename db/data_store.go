@@ -44,7 +44,7 @@ type bookingProvider interface {
 	GetBookingsByDateRange(start time.Time, end time.Time) ([]*model.Booking, error)
 	GetExpandedBookingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedBooking, error)
 	CreateBooking(booking *model.Booking) (string, error)
-	UpdateBooking(id string, booking *model.Booking) (string, error)
+	UpdateBooking(id string, booking *model.Booking) error
 	RemoveBooking(id string) error
 }
 
@@ -76,6 +76,6 @@ type offeringProvider interface {
 	GetOfferingsByDateRange(start time.Time, end time.Time) ([]*model.Offering, error)
 	GetExpandedOfferingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedOffering, error)
 	CreateOffering(booking *model.Offering) (string, error)
-	UpdateOffering(id string, booking *model.Offering) (string, error)
+	UpdateOffering(id string, booking *model.Offering) error
 	RemoveOffering(id string) error
 }

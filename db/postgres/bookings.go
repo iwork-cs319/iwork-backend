@@ -140,7 +140,7 @@ func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
 	return id, nil
 }
 
-func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) (string,error) {
+func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) error {
 	sqlStatement :=
 		`UPDATE bookings
 				SET user_id = $2, workspace_id = $3, cancelled = $4, start_time = $5, end_time = $6, created_by = $7
@@ -157,12 +157,12 @@ func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) (strin
 		booking.CreatedBy,
 	).Scan(&_id)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if _id != id {
-		return "", CreateError
+		return CreateError
 	}
-	return id, nil
+	return nil
 }
 
 func (p PostgresDBStore) RemoveBooking(id string) error {

@@ -161,18 +161,6 @@ func (suite *AppTestSuite) TestGetAllBookings() {
 	assert.Contains(t, payload, Booking5)
 	assert.Contains(t, payload, Booking6)
 	assert.Contains(t, payload, Booking7)
-	//expectedBookings := []*model.Booking{Booking1, Booking2, Booking3, Booking4, Booking5, Booking6, Booking7}
-	//for _, expected := range expectedBookings {
-	//	found := false
-	//	for _, b := range payload {
-	//		if b.Equal(expected) {
-	//			found = true
-	//		}
-	//	}
-	//	if !found {
-	//		t.Fatalf("testGetAllBookings: %s not found in offring list", expected.ID)
-	//	}
-	//}
 }
 
 func (suite *AppTestSuite) TestGetOneBookingByWorkspaceIDFail() {

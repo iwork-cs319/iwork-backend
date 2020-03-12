@@ -261,6 +261,7 @@ func (app *App) UpdateOffering(w http.ResponseWriter, r *http.Request) {
 	}
 	var updatedOffering model.Offering
 	reqBody, err := ioutil.ReadAll(r.Body)
+	updatedOffering.ID = offeringID
 	if err != nil {
 		log.Printf("App.UpdateOffering - error reading request body %v", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -273,13 +274,12 @@ func (app *App) UpdateOffering(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := app.store.OfferingProvider.UpdateOffering(offeringID, &updatedOffering)
+	err = app.store.OfferingProvider.UpdateOffering(offeringID, &updatedOffering)
 	if err != nil {
 		log.Printf("App.UpdateOffering - error getting all offerings from provider %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	updatedOffering.ID = id
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updatedOffering)
 }
