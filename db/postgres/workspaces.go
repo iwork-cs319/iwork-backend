@@ -22,16 +22,18 @@ func (p PostgresDBStore) UpdateWorkspace(id string, workspace *model.Workspace) 
 		`UPDATE workspaces
 				SET name = $2, floor_id = $3
 				WHERE id = $1
-				RETURNING id, name;`
+				RETURNING id, name, floor_id;`
 	var _id string
 	var name string
-	err := p.database.QueryRow(sqlStatement, id, workspace.Name, workspace.Floor).Scan(&_id, &name)
+	var floorId string
+	err := p.database.QueryRow(sqlStatement, id, workspace.Name, workspace.Floor).Scan(&_id, &name, &floorId)
 	if err != nil {
 		return err
 	}
-	if _id != id || name != workspace.Name {
+	if _id != id || name != workspace.Name || floorId != workspace.Floor {
 		return CreateError
 	}
+	workspace.ID = _id
 	return nil
 }
 

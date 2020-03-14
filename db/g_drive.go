@@ -8,7 +8,11 @@ import (
 	"log"
 )
 
-type Drive struct {
+type Drive interface {
+	UploadFloorPlan(name string, content io.Reader) (string, error)
+}
+
+type GDrive struct {
 	srv *drive.Service
 }
 
@@ -17,7 +21,7 @@ const (
 	RootFolderName      = "root"
 )
 
-func NewDriveClient(driveConfigJSON string) (*Drive, error) {
+func NewDriveClient(driveConfigJSON string) (Drive, error) {
 	service, err := drive.NewService(
 		context.Background(),
 		option.WithCredentialsJSON([]byte(driveConfigJSON)),
@@ -28,12 +32,12 @@ func NewDriveClient(driveConfigJSON string) (*Drive, error) {
 		return nil, err
 	}
 
-	return &Drive{
+	return &GDrive{
 		srv: service,
 	}, err
 }
 
-func (d Drive) createDir(name string, parentId string) (*drive.File, error) {
+func (d GDrive) createDir(name string, parentId string) (*drive.File, error) {
 	dir := &drive.File{
 		Name:     name,
 		MimeType: "application/vnd.google-apps.folder",
@@ -49,7 +53,7 @@ func (d Drive) createDir(name string, parentId string) (*drive.File, error) {
 	return file, nil
 }
 
-func (d Drive) createFile(name string, mimeType string, content io.Reader, parentId string) (*drive.File, error) {
+func (d GDrive) createFile(name string, mimeType string, content io.Reader, parentId string) (*drive.File, error) {
 	f := &drive.File{
 		MimeType: mimeType,
 		Name:     name,
@@ -64,7 +68,7 @@ func (d Drive) createFile(name string, mimeType string, content io.Reader, paren
 	return file, nil
 }
 
-func (d Drive) updatePermissionToPublic(id string) error {
+func (d GDrive) updatePermissionToPublic(id string) error {
 	permissionData := &drive.Permission{
 		Type: "anyone",
 		Role: "reader",
@@ -78,7 +82,7 @@ func (d Drive) updatePermissionToPublic(id string) error {
 	return nil
 }
 
-func (d Drive) UploadFloorPlan(name string, content io.Reader) (string, error) {
+func (d GDrive) UploadFloorPlan(name string, content io.Reader) (string, error) {
 	dir, err := d.createDir(FloorPlanFolderName, RootFolderName)
 	if err != nil {
 		log.Println("Failed to create folder: " + err.Error())

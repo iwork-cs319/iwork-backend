@@ -12,7 +12,7 @@ import (
 type App struct {
 	router *mux.Router
 	store  *db.DataStore
-	gDrive *db.Drive
+	gDrive db.Drive
 }
 
 func NewApp(dbUrl, gDriveConfig string) *App {

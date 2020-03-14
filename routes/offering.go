@@ -132,7 +132,6 @@ func (app *App) GetAllOfferings(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) GetOfferingsByWorkspaceID(w http.ResponseWriter, r *http.Request) {
 	workspaceID := mux.Vars(r)["workspace_id"]
-
 	if workspaceID == "" {
 		log.Printf("App.GetOneOffering - empty offering id")
 		w.WriteHeader(http.StatusBadRequest)
@@ -262,6 +261,7 @@ func (app *App) UpdateOffering(w http.ResponseWriter, r *http.Request) {
 	}
 	var updatedOffering model.Offering
 	reqBody, err := ioutil.ReadAll(r.Body)
+	updatedOffering.ID = offeringID
 	if err != nil {
 		log.Printf("App.UpdateOffering - error reading request body %v", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -277,9 +277,11 @@ func (app *App) UpdateOffering(w http.ResponseWriter, r *http.Request) {
 	err = app.store.OfferingProvider.UpdateOffering(offeringID, &updatedOffering)
 	if err != nil {
 		log.Printf("App.UpdateOffering - error getting all offerings from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedOffering)
 }
 
 func (app *App) RemoveOffering(w http.ResponseWriter, r *http.Request) {

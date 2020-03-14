@@ -51,7 +51,7 @@ func (app *App) CreateUsers(w http.ResponseWriter, r *http.Request) {
 		if err == io.EOF {
 			break
 		}
-		if err != nil {
+		if err != nil || len(record) != 5 {
 			log.Println("App.CreateUsers - failed to parse csv file")
 			w.WriteHeader(http.StatusBadRequest)
 			return
