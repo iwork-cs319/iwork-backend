@@ -2,7 +2,6 @@ package routes
 
 import (
 	"github.com/gomodule/redigo/redis"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"go-api/db"
