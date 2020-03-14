@@ -30,6 +30,7 @@ This is the backend REST API for booking/viewing workspaces
 - The CSV should have the following format `WorkspaceName, FloorName, UserId` 
 
 ## Bookings / Offerings (same syntax)
+Notes: Any endpoint can have `?start={start_timestamp}&end={end_timestamp}` added to search Bookings/Offerings based on date range.
 ### GET /bookings
 - Get All booking objects
 
@@ -41,9 +42,6 @@ This is the backend REST API for booking/viewing workspaces
 
 ### GET /bookings/users/:id
 - Get booking object with `user_id`
-
-### GET /bookings/users?start={start_timestamp}&end={end_timestamp}
-- Get booking object with `start_time` and `end_time`, where `start_time` and `end_time` are unix timestamps.
 
 ### POST /bookings
 - Create new booking object
