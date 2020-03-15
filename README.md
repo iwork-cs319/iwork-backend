@@ -2,6 +2,12 @@
 This is the backend REST API for booking/viewing workspaces
 
 ## Users
+### GET /users  
+- Get All users objects  
+
+### GET /users/:id  
+- Get user object with `id`  
+  
 ### POST /users
 - Bulk create users. You have to send a `multipart/form-data` with `users=<users-csv>`. 
 - The CSV should have the following format `email, name, id, department, isAdmin` 
@@ -30,6 +36,7 @@ This is the backend REST API for booking/viewing workspaces
 - The CSV should have the following format `WorkspaceName, FloorName, UserId` 
 
 ## Bookings / Offerings (same syntax)
+Notes: Any endpoint can have `?start={start_timestamp}&end={end_timestamp}` added to search Bookings/Offerings based on date range. Also, any GET endpoint can use `?expand=true` to return additional fields (workspace_name, user_name, floor_id, floor_name).  
 ### GET /bookings
 - Get All booking objects
 
@@ -41,9 +48,6 @@ This is the backend REST API for booking/viewing workspaces
 
 ### GET /bookings/users/:id
 - Get booking object with `user_id`
-
-### GET /bookings/users?start={start_timestamp}&end={end_timestamp}
-- Get booking object with `start_time` and `end_time`, where `start_time` and `end_time` are unix timestamps.
 
 ### POST /bookings
 - Create new booking object
