@@ -1,18 +1,21 @@
 package routes
 
 import (
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"go-api/db"
 	"go-api/db/postgres"
 	"log"
 	"net/http"
+	"os"
 )
 
 type App struct {
 	router *mux.Router
 	store  *db.DataStore
 	gDrive db.Drive
+	cache  redis.Conn
 }
 
 func NewApp(dbUrl, gDriveConfig string) *App {
@@ -26,10 +29,16 @@ func NewApp(dbUrl, gDriveConfig string) *App {
 		log.Println("Failed to connect to google drive")
 		log.Fatal(err)
 	}
+	cache, err := redis.DialURL(os.Getenv("REDIS_URL"))
+	if err != nil {
+		log.Println("Failed to connect to redis")
+		log.Fatal(err)
+	}
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
 		gDrive: driveClient,
+		cache:  cache,
 	}
 }
 
@@ -42,15 +51,17 @@ func (app *App) Setup(port string) error {
 }
 
 func (app *App) RegisterRoutes() {
+	app.RegisterLoginRoutes()
+	app.RegisterUserRoutes()
+	app.RegisterFloorRoutes()
 	app.RegisterWorkspaceRoutes()
 	app.RegisterBookingRoutes()
 	app.RegisterOfferingRoutes()
-	app.RegisterUserRoutes()
-	app.RegisterFloorRoutes()
 }
 
 func (app *App) Close() {
 	app.store.Close()
+	app.cache.Close()
 }
 
 func (app *App) index(w http.ResponseWriter, r *http.Request) {
