@@ -74,6 +74,29 @@ func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
 	return workspaces, nil
 }
 
+func (p PostgresDBStore) GetAllWorkspacesByFloor(floorId string) ([]*model.Workspace, error) {
+	rows, err := p.database.Query(`SELECT id, name, floor_id FROM workspaces WHERE floor_id=$1;`, floorId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	workspaces := make([]*model.Workspace, 0)
+	for rows.Next() {
+		var workspace model.Workspace
+		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.GetAllWorkspacesByFloorId: %v\n", err)
+		}
+		workspaces = append(workspaces, &workspace)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return workspaces, nil
+}
+
 func (p PostgresDBStore) CreateAssignment(userId, workspaceId string) error {
 	rows, err := p.database.Query(`SELECT id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NOT NULL`, workspaceId)
 	if err != nil {
