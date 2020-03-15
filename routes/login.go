@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"github.com/segmentio/ksuid"
+	"log"
 	"net/http"
 	"time"
 )
@@ -26,23 +27,27 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&loginBody)
 	if err != nil {
+		log.Printf("App.Login: couldnt parse body, %+v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	user, err := app.store.UserProvider.GetOneUser(loginBody.UserId)
 	if err != nil {
+		log.Printf("App.Login: couldnt parse body, %+v\n", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	sessionToken, err := ksuid.NewRandom()
 	if err != nil {
+		log.Printf("App.Login: couldnt gen ksuid, %+v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	_, err = app.cache.Do("SETEX", sessionToken.String(), SessionTimeout, user.ID)
 	if err != nil {
+		log.Printf("App.Login: couldnt store session-key, %+v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -59,6 +64,7 @@ func (app *App) Logout(w http.ResponseWriter, r *http.Request) {
 	c, _ := r.Cookie("session_token")
 	_, err := app.cache.Do("DEL", c.Value)
 	if err != nil {
+		log.Printf("App.Logout: couldnt delete session-key, %+v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -74,9 +80,11 @@ func (app *App) authCheckMiddleware(next http.Handler) http.Handler {
 		c, err := r.Cookie(CookieSessionToken)
 		if err != nil {
 			if err == http.ErrNoCookie {
+				log.Printf("App.authCheckMiddleware: no cookie, %+v\n", err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
+			log.Printf("App.authCheckMiddleware: error - , %+v\n", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -84,10 +92,12 @@ func (app *App) authCheckMiddleware(next http.Handler) http.Handler {
 
 		response, err := app.cache.Do("GET", sessionToken)
 		if err != nil {
+			log.Printf("App.authCheckMiddleware: couldnt get session-token, %+v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		if response == nil {
+			log.Printf("App.authCheckMiddleware: unknown session-token, %+v\n", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
