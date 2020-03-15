@@ -21,7 +21,9 @@ func (app *App) RegisterWorkspaceRoutes() {
 		Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/workspaces", app.CreateWorkspace).Methods("POST")
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
-	app.router.HandleFunc("/workspaces", app.GetAllWorkspaces).Methods("GET")
+	app.router.HandleFunc("/workspaces", app.GetAllWorkspacesByFloorId).Methods("GET").
+		Queries("floor", "{floor}")
+	app.router.HandleFunc("/workspaces", app.GetAllWorkspaces)
 	app.router.HandleFunc("/workspaces/{id}", app.UpdateWorkspace).Methods("PATCH")
 	//app.router.HandleFunc("/workspaces/{id}", app.DeleteWorkspace).Methods("DELETE")
 	app.router.HandleFunc("/assignments", app.CreateAssignments).Methods("POST")
@@ -79,6 +81,18 @@ func (app *App) GetAllWorkspaces(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("App.GetAllWorkspaces - error getting all workspaces from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(workspaces)
+}
+
+func (app *App) GetAllWorkspacesByFloorId(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	floorId := queryParams["floor"][0]
+	workspaces, err := app.store.WorkspaceProvider.GetAllWorkspacesByFloor(floorId)
+	if err != nil {
+		log.Printf("App.GetAllWorkspacesByFloorId - error getting all workspaces by floor id from provider %v", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	json.NewEncoder(w).Encode(workspaces)
