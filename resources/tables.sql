@@ -48,7 +48,6 @@ CREATE TABLE offerings
     start_time   TIMESTAMPTZ                     NOT NULL,
     end_time     TIMESTAMPTZ                     NOT NULL,
     created_by   uuid REFERENCES users (id)      NOT NULL,
-    locked       BOOLEAN          DEFAULT FALSE
 );
 
 CREATE TABLE workspace_assignee
