@@ -26,7 +26,6 @@ CREATE TABLE workspaces
     id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     floor_id uuid REFERENCES floors (id) NOT NULL,
     name     TEXT                        NOT NULL,
-    locked   BOOLEAN          DEFAULT FALSE
 );
 
 CREATE TABLE bookings
@@ -48,7 +47,8 @@ CREATE TABLE offerings
     cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                     NOT NULL,
     end_time     TIMESTAMPTZ                     NOT NULL,
-    created_by   uuid REFERENCES users (id)      NOT NULL
+    created_by   uuid REFERENCES users (id)      NOT NULL,
+    locked       BOOLEAN          DEFAULT FALSE
 );
 
 CREATE TABLE workspace_assignee

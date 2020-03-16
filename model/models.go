@@ -49,6 +49,7 @@ type Offering struct {
 	EndDate     time.Time `json:"end_time"`
 	Cancelled   bool      `json:"cancelled"`
 	CreatedBy   string    `json:"created_by"`
+	Locked 		bool	  `json:"locked"`
 }
 
 type ExpandedOffering struct {
