@@ -35,7 +35,7 @@ func (p PostgresDBStore) FindAvailability(floorId string, start time.Time, end t
 	}
 
 	sqlStmtOfferings := `SELECT o.workspace_id from offerings o INNER JOIN workspaces w ON w.id=o.workspace_id
-			WHERE w.floor_id=$1 AND o.locked=false AND o.cancelled=false AND
+			WHERE w.floor_id=$1 AND o.cancelled=false AND
 			( (o.start_time <= $2 AND o.end_time >= $3) );`
 	rows, err = p.database.Query(sqlStmtOfferings, floorId, start, end)
 	if err != nil {

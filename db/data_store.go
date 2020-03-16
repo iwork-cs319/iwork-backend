@@ -84,8 +84,6 @@ type offeringProvider interface {
 	CreateOffering(booking *model.Offering) (string, error)
 	UpdateOffering(id string, booking *model.Offering) error
 	RemoveOffering(id string) error
-	LockOffering(id string) error
-	UnlockOffering(id string) error
 }
 
 type assigneeProvider interface {
