@@ -23,25 +23,27 @@ type ConfirmationParams struct {
 }
 
 type EmailClient interface {
-	SendConfirmation(params *ConfirmationParams) error
-	SendCancellation(params *ConfirmationParams) error
+	SendConfirmation(typeS string, params *ConfirmationParams) error
+	SendCancellation(typeS string, params *ConfirmationParams) error
 }
 
 type SendGridClient struct {
 	client *sendgrid.Client
 }
 
+const Booking = "booking"
+const Offering = "offering"
 const IWorkUserName = "IWork"
 const IWorkEmail = "cs319.icbc@outlook.com"
 const EmailBody = `You can view/manage your bookings and offerings under the manage tab at http://icbc-iwork-staging.herokuapp.com/`
 
-func (c *SendGridClient) SendConfirmation(params *ConfirmationParams) error {
+func (c *SendGridClient) SendConfirmation(typeS string, params *ConfirmationParams) error {
 	from := mail.NewEmail(IWorkUserName, IWorkEmail)
-	subject := "Workspace booking confirmed"
+	subject := fmt.Sprintf("Workspace %s confirmed", typeS)
 	to := mail.NewEmail(params.Name, params.Email)
 	plainTextContent := fmt.Sprintf(
-		"Your booking for workspace %s on floor %s for the duration of %s to %s has now been confirmed. \n%s",
-		params.WorkspaceName, params.FloorName, params.Start, params.End, EmailBody,
+		"Your %s for workspace %s on floor %s for the duration of %s to %s has now been confirmed. \n%s",
+		typeS, params.WorkspaceName, params.FloorName, params.Start, params.End, EmailBody,
 	)
 	htmlContent := plainTextContent
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
@@ -53,13 +55,13 @@ func (c *SendGridClient) SendConfirmation(params *ConfirmationParams) error {
 	return nil
 }
 
-func (c *SendGridClient) SendCancellation(params *ConfirmationParams) error {
+func (c *SendGridClient) SendCancellation(typeS string, params *ConfirmationParams) error {
 	from := mail.NewEmail(IWorkUserName, IWorkEmail)
-	subject := "Workspace booking cancelled"
+	subject := fmt.Sprintf("Workspace %s cancelled", typeS)
 	to := mail.NewEmail(params.Name, params.Email)
 	plainTextContent := fmt.Sprintf(
-		"Your booking for workspace %s on floor %s for the duration of %s to %s has now been confirmed. \n%s",
-		params.WorkspaceName, params.FloorName, params.Start, params.End, EmailBody,
+		"Your %s for workspace %s on floor %s for the duration of %s to %s has now been confirmed. \n%s",
+		typeS, params.WorkspaceName, params.FloorName, params.Start, params.End, EmailBody,
 	)
 	htmlContent := plainTextContent
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
