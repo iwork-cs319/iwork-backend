@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"database/sql"
 	"go-api/model"
 	"log"
 	"time"
@@ -107,7 +108,7 @@ func (p PostgresDBStore) GetExpandedBookingsByUserID(id string) ([]*model.Expand
 func (p PostgresDBStore) GetBookingsByDateRange(start time.Time, end time.Time) ([]*model.Booking, error) {
 	sqlStatement :=
 		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by FROM bookings 
-				WHERE start_time >= $1 AND end_time <= $2;`
+				WHERE start_time <= $1 AND end_time >= $2;`
 	return p.queryMultipleBookings(sqlStatement, start, end)
 }
 
@@ -118,7 +119,7 @@ func (p PostgresDBStore) GetExpandedBookingsByDateRange(start time.Time, end tim
 		 INNER JOIN users AS u ON b.user_id = u.id
 		 INNER JOIN workspaces AS w ON b.workspace_id = w.id
 		 INNER JOIN floors AS f ON w.floor_id = f.id  
-		 WHERE start_time >= $1 AND end_time <= $2;`
+		 WHERE start_time <= $1 AND end_time >= $2;`
 
 	return p.queryMultipleExpandedBookings(sqlStatement, start, end)
 }
@@ -182,6 +183,29 @@ func (p PostgresDBStore) RemoveBooking(id string) error {
 		return CreateError
 	}
 	return nil
+}
+
+func (p PostgresDBStore) IsBooked(workspace_id string, start time.Time, end time.Time) (bool, error) {
+	// It either:
+	// 1. Encapsulates the entire desired booking range
+	// 2. Start_time is after desired starting time but before ending time
+	// 3. End_time is after starting time but before desired ending time
+	sqlStatement := `SELECT id
+					 FROM bookings
+					 WHERE workspace_id=$1 AND
+					 ((start_time <= $2 AND end_time >= $3)
+					 OR (start_time >= $2 AND start_time <= $3)
+					 OR (end_time >= $2 AND end_time <= $3));`
+	var returned string
+	row := p.database.QueryRow(sqlStatement, workspace_id, start, end)
+	switch err := row.Scan(&returned); err {
+	case sql.ErrNoRows: // No rows found == no conflict
+		return false, nil
+	case nil: // Some rows found == conflict
+		return true, nil
+	default: // Some other error
+		return false, err
+	}
 }
 
 func (p PostgresDBStore) queryMultipleBookings(sqlStatement string, args ...interface{}) ([]*model.Booking, error) {

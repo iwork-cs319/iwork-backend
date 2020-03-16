@@ -42,10 +42,49 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	if newBooking.CreatedBy == "" {
 		newBooking.CreatedBy = newBooking.UserID
 	}
-
+	boolean, err := app.store.AssigneeProvider.IsAssigned(newBooking.WorkspaceID)
+	if err != nil {
+		log.Printf("App.CreateBooking - error checking assigned workspaces %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if boolean == true {
+		// Check if still available
+		_, err := app.store.OfferingProvider.GetOfferingsByWorkspaceIDAndDateRange(newBooking.WorkspaceID, newBooking.StartDate, newBooking.EndDate)
+		if err != nil { // Unable to find or other errors
+			log.Printf("App.CreateBooking - error getting offerings by wID and date range %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		} // Change _ above to offering once done fixing
+		//if offering.Locked == true { // Todo: Improving locking manner -- 2 'set to locked', both think they did. Who did it?
+		//	log.Printf("App.CreateBooking - the desired workspace is currently locked %v", err)
+		//		w.WriteHeader(http.StatusLocked)
+		//		return
+		//} else {
+		//	err := app.store.OfferingProvider.LockOffering(offering.ID)
+		//	if err != nil {
+		//		log.Printf("App.CreateBooking - could not lock offering %v", err)
+		//		w.WriteHeader(http.StatusInternalServerError)
+		//		return
+		//	}
+		//}
+	}
+	// TODO: Ensure unlock on all errors and on success
+	booked, err := app.store.BookingProvider.IsBooked(newBooking.WorkspaceID, newBooking.StartDate, newBooking.EndDate)
+	if err != nil {
+		log.Printf("App.CreateBooking - error getting offerings by wID and date range %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if booked {
+		log.Printf("App.CreateBooking - the desired workspace is booked at desired time %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	id, err := app.store.BookingProvider.CreateBooking(&newBooking)
 	if err != nil {
 		log.Printf("App.CreateBooking - error creating booking %v", err)
