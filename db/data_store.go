@@ -84,5 +84,6 @@ type offeringProvider interface {
 }
 
 type assigneeProvider interface {
-	IsAssigned(id string) (bool, error)
+	IsAssigned(id string, start time.Time, end time.Time) (bool, error)
+	IsFullyAssigned(id string) (bool, error)
 }

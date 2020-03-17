@@ -184,7 +184,7 @@ func (p PostgresDBStore) RemoveBooking(id string) error {
 	return nil
 }
 
-func (p PostgresDBStore) IsBooked(workspace_id string, start time.Time, end time.Time) (bool, error) {
+func (p PostgresDBStore) IsBooked(workspaceId string, start time.Time, end time.Time) (bool, error) {
 	// It either:
 	// 1. Encapsulates the entire desired booking range
 	// 2. Start_time is after desired starting time but before ending time
@@ -196,7 +196,7 @@ func (p PostgresDBStore) IsBooked(workspace_id string, start time.Time, end time
 					 OR (start_time >= $2 AND start_time <= $3)
 					 OR (end_time >= $2 AND end_time <= $3));`
 	var returned string
-	row := p.database.QueryRow(sqlStatement, workspace_id, start, end)
+	row := p.database.QueryRow(sqlStatement, workspaceId, start, end)
 	switch err := row.Scan(&returned); err {
 	case sql.ErrNoRows: // No rows found == no conflict
 		return false, nil

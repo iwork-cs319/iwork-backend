@@ -23,7 +23,7 @@ func (app *App) RegisterOfferingRoutes() {
 	app.router.HandleFunc("/offerings", app.GetOfferingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/offerings", app.GetAllOfferings).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/offerings", app.GetAllOfferings).Methods("GET")
-	app.router.HandleFunc("/offerings/{id}", app.UpdateOffering).Methods("PATCH")
+	//app.router.HandleFunc("/offerings/{id}", app.UpdateOffering).Methods("PATCH")
 	app.router.HandleFunc("/offerings/{id}", app.RemoveOffering).Methods("DELETE")
 }
 
@@ -45,7 +45,23 @@ func (app *App) CreateOffering(w http.ResponseWriter, r *http.Request) {
 	if newOffering.CreatedBy == "" {
 		newOffering.CreatedBy = newOffering.UserID
 	}
-
+	boolean, err := app.store.AssigneeProvider.IsFullyAssigned(newOffering.WorkspaceID)
+	if err != nil {
+		log.Printf("App.CreateOffering - error checking assignment with workspace ID %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if !boolean { // If it isn't fully assigned
+		log.Printf("App.CreateOffering - error cannot create assignment on non-assigned workspace %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	_, err = app.store.OfferingProvider.GetOfferingsByWorkspaceIDAndDateRange(newOffering.WorkspaceID, newOffering.StartDate, newOffering.EndDate)
+	if err != nil {
+		log.Printf("App.CreateOffering - error cannot create offering, it already exists! %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	id, err := app.store.OfferingProvider.CreateOffering(&newOffering)
 	if err != nil {
 		log.Printf("App.CreateOffering - error creating offering %v", err)
@@ -290,8 +306,19 @@ func (app *App) RemoveOffering(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	err := app.store.OfferingProvider.RemoveOffering(offeringID)
+	offering, err := app.store.OfferingProvider.GetOneOffering(offeringID)
+	if err != nil {
+		log.Printf("App.RemoveOffering - offering does not exist")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	boolean, err := app.store.AssigneeProvider.IsFullyAssigned(offering.WorkspaceID)
+	if !boolean {
+		log.Printf("App.RemoveOffering - offering not for assigned seating, cannot be cancelled.")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = app.store.OfferingProvider.RemoveOffering(offeringID)
 	if err != nil {
 		log.Printf("App.RemoveOffering - error getting all offerings from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)
