@@ -9,13 +9,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type App struct {
 	router *mux.Router
 	store  *db.DataStore
 	gDrive db.Drive
-	cache  redis.Conn
+	cache  *redis.Pool
 }
 
 func NewApp(dbUrl, gDriveConfig string) *App {
@@ -29,16 +30,23 @@ func NewApp(dbUrl, gDriveConfig string) *App {
 		log.Println("Failed to connect to google drive")
 		log.Fatal(err)
 	}
-	cache, err := redis.DialURL(os.Getenv("REDIS_URL"))
-	if err != nil {
+	redisUrl := os.Getenv("REDIS_URL")
+	if redisUrl == "" {
 		log.Println("Failed to connect to redis")
 		log.Fatal(err)
+	}
+	redisCache := &redis.Pool{
+		MaxIdle:     10,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(redisUrl)
+		},
 	}
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
 		gDrive: driveClient,
-		cache:  cache,
+		cache:  redisCache,
 	}
 }
 
@@ -51,7 +59,6 @@ func (app *App) Setup(port string) error {
 }
 
 func (app *App) RegisterRoutes() {
-	app.RegisterLoginRoutes()
 	app.RegisterUserRoutes()
 	app.RegisterFloorRoutes()
 	app.RegisterWorkspaceRoutes()
@@ -61,7 +68,6 @@ func (app *App) RegisterRoutes() {
 
 func (app *App) Close() {
 	app.store.Close()
-	app.cache.Close()
 }
 
 func (app *App) index(w http.ResponseWriter, r *http.Request) {
