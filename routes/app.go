@@ -6,6 +6,7 @@ import (
 	"github.com/rs/cors"
 	"go-api/db"
 	"go-api/db/postgres"
+	"go-api/mail"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,7 @@ type App struct {
 	store  *db.DataStore
 	gDrive db.Drive
 	cache  redis.Conn
+	email  mail.EmailClient
 }
 
 func NewApp(dbUrl, gDriveConfig string) *App {
@@ -34,11 +36,13 @@ func NewApp(dbUrl, gDriveConfig string) *App {
 		log.Println("Failed to connect to redis")
 		log.Fatal(err)
 	}
+	email, err := mail.NewSendGridClient()
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
 		gDrive: driveClient,
 		cache:  cache,
+		email:  email,
 	}
 }
 

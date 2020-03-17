@@ -9,13 +9,9 @@ import (
 	"os"
 )
 
-type sendUser struct {
-	Name  string
-	Email string
-}
-
-type ConfirmationParams struct {
-	*sendUser
+type EmailParams struct {
+	Name          string
+	Email         string
 	WorkspaceName string
 	FloorName     string
 	Start         string
@@ -23,8 +19,8 @@ type ConfirmationParams struct {
 }
 
 type EmailClient interface {
-	SendConfirmation(typeS string, params *ConfirmationParams) error
-	SendCancellation(typeS string, params *ConfirmationParams) error
+	SendConfirmation(typeS string, params *EmailParams) error
+	SendCancellation(typeS string, params *EmailParams) error
 }
 
 type SendGridClient struct {
@@ -37,10 +33,10 @@ const IWorkUserName = "IWork"
 const IWorkEmail = "cs319.icbc@outlook.com"
 const EmailBody = `You can view/manage your bookings and offerings under the manage tab at http://icbc-iwork-staging.herokuapp.com/`
 
-func (c *SendGridClient) SendConfirmation(typeS string, params *ConfirmationParams) error {
+func (c *SendGridClient) SendConfirmation(typeS string, params *EmailParams) error {
 	from := mail.NewEmail(IWorkUserName, IWorkEmail)
 	subject := fmt.Sprintf("Workspace %s confirmed", typeS)
-	to := mail.NewEmail(params.Name, params.Email)
+	to := mail.NewEmail(params.Name, IWorkEmail)
 	plainTextContent := fmt.Sprintf(
 		"Your %s for workspace %s on floor %s for the duration of %s to %s has now been confirmed. \n%s",
 		typeS, params.WorkspaceName, params.FloorName, params.Start, params.End, EmailBody,
@@ -55,7 +51,7 @@ func (c *SendGridClient) SendConfirmation(typeS string, params *ConfirmationPara
 	return nil
 }
 
-func (c *SendGridClient) SendCancellation(typeS string, params *ConfirmationParams) error {
+func (c *SendGridClient) SendCancellation(typeS string, params *EmailParams) error {
 	from := mail.NewEmail(IWorkUserName, IWorkEmail)
 	subject := fmt.Sprintf("Workspace %s cancelled", typeS)
 	to := mail.NewEmail(params.Name, params.Email)
