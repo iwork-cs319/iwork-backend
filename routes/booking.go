@@ -22,7 +22,7 @@ func (app *App) RegisterBookingRoutes() {
 	app.router.HandleFunc("/bookings", app.GetBookingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET") // Handles when Query is empty
-	app.router.HandleFunc("/bookings/{id}", app.UpdateBooking).Methods("PATCH")
+	//app.router.HandleFunc("/bookings/{id}", app.UpdateBooking).Methods("PATCH")
 	app.router.HandleFunc("/bookings/{id}", app.RemoveBooking).Methods("DELETE")
 }
 
@@ -44,21 +44,14 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	if newBooking.CreatedBy == "" {
 		newBooking.CreatedBy = newBooking.UserID
 	}
-	boolean, err := app.store.AssigneeProvider.IsAssigned(newBooking.WorkspaceID)
-	if err != nil {
-		log.Printf("App.CreateBooking - error checking assigned workspaces %v", err)
+	// Check if still available
+	_, err = app.store.OfferingProvider.GetOfferingsByWorkspaceIDAndDateRange(newBooking.WorkspaceID, newBooking.StartDate, newBooking.EndDate)
+	if err != nil { // Unable to find or other errors
+		log.Printf("App.CreateBooking - error getting offerings by wID and date range %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if boolean == true {
-		// Check if still available
-		_, err := app.store.OfferingProvider.GetOfferingsByWorkspaceIDAndDateRange(newBooking.WorkspaceID, newBooking.StartDate, newBooking.EndDate)
-		if err != nil { // Unable to find or other errors
-			log.Printf("App.CreateBooking - error getting offerings by wID and date range %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
+
 	booked, err := app.store.BookingProvider.IsBooked(newBooking.WorkspaceID, newBooking.StartDate, newBooking.EndDate)
 	if err != nil {
 		log.Printf("App.CreateBooking - error getting bookings by wID and date range %v", err)
