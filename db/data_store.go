@@ -53,6 +53,7 @@ type userProvider interface {
 	GetOneUser(id string) (*model.User, error)
 	GetAllUsers() ([]*model.User, error)
 	CreateUser(user *model.User) error
+	GetAssignedUsers(start, end time.Time) ([]*model.UserAssignment, error)
 	//UpdateUser(id string, user *model.User) error
 	//RemoveUser(id string) error
 }

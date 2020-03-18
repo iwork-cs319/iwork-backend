@@ -3,10 +3,11 @@ package model
 import "time"
 
 type Workspace struct {
-	ID    string                 `json:"id"`
-	Name  string                 `json:"name"`
-	Floor string                 `json:"floor_id"`
-	Props map[string]interface{} `json:"props"`
+	ID      string                 `json:"id"`
+	Name    string                 `json:"name"`
+	Floor   string                 `json:"floor_id"`
+	Props   map[string]interface{} `json:"props"`
+	Details string                 `json:"details"`
 }
 
 func (this *Workspace) Equal(other *Workspace) bool {
@@ -55,6 +56,7 @@ type Floor struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	DownloadURL string `json:"download_url"`
+	Address     string `json:"address"`
 }
 
 func (this *Floor) Equal(other *Floor) bool {

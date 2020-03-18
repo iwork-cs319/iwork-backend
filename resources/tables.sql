@@ -9,7 +9,8 @@ CREATE TABLE floors
 (
     id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     name         TEXT NOT NULL,
-    download_url TEXT NOT NULL
+    download_url TEXT NOT NULL,
+    address      TEXT NOT NULL
 );
 
 CREATE TABLE users
@@ -26,7 +27,8 @@ CREATE TABLE workspaces
     id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     floor_id uuid REFERENCES floors (id) NOT NULL,
     name     TEXT                        NOT NULL,
-    locked   BOOLEAN          DEFAULT FALSE
+    locked   BOOLEAN          DEFAULT FALSE,
+    details  TEXT             DEFAULT ''
 );
 
 CREATE TABLE bookings
