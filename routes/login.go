@@ -1,5 +1,7 @@
 package routes
 
+// DEPRECATED
+
 import (
 	"encoding/json"
 	"github.com/segmentio/ksuid"
@@ -45,7 +47,9 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	_, err = app.cache.Do("SETEX", sessionToken.String(), SessionTimeout, user.ID)
+	conn := app.cache.Get()
+	defer conn.Close()
+	_, err = conn.Do("SETEX", sessionToken.String(), SessionTimeout, user.ID)
 	if err != nil {
 		log.Printf("App.Login: couldnt store session-key, %+v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -62,7 +66,9 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) Logout(w http.ResponseWriter, r *http.Request) {
 	c, _ := r.Cookie("session_token")
-	_, err := app.cache.Do("DEL", c.Value)
+	conn := app.cache.Get()
+	defer conn.Close()
+	_, err := conn.Do("DEL", c.Value)
 	if err != nil {
 		log.Printf("App.Logout: couldnt delete session-key, %+v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -89,8 +95,9 @@ func (app *App) authCheckMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		sessionToken := c.Value
-
-		response, err := app.cache.Do("GET", sessionToken)
+		conn := app.cache.Get()
+		defer conn.Close()
+		response, err := conn.Do("GET", sessionToken)
 		if err != nil {
 			log.Printf("App.authCheckMiddleware: couldnt get session-token, %+v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
