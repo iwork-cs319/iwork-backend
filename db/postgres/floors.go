@@ -6,13 +6,14 @@ import (
 )
 
 func (p PostgresDBStore) GetOneFloor(id string) (*model.Floor, error) {
-	sqlStatement := `SELECT id, name, download_url FROM floors WHERE id=$1;`
+	sqlStatement := `SELECT id, name, download_url, address FROM floors WHERE id=$1;`
 	var floor model.Floor
 	row := p.database.QueryRow(sqlStatement, id)
 	err := row.Scan(
 		&floor.ID,
 		&floor.Name,
 		&floor.DownloadURL,
+		&floor.Address,
 	)
 	if err != nil {
 		return nil, err
@@ -21,17 +22,18 @@ func (p PostgresDBStore) GetOneFloor(id string) (*model.Floor, error) {
 }
 
 func (p PostgresDBStore) GetAllFloors() ([]*model.Floor, error) {
-	sqlStatement := `SELECT id, name, download_url FROM floors;`
+	sqlStatement := `SELECT id, name, download_url, address FROM floors;`
 	return p.queryMultipleFloors(sqlStatement)
 }
 
 func (p PostgresDBStore) CreateFloor(floor *model.Floor) (string, error) {
 	sqlStatement :=
-		`INSERT INTO floors(name, download_url) VALUES ($1, $2) RETURNING id`
+		`INSERT INTO floors(name, download_url, address) VALUES ($1, $2, $3) RETURNING id`
 	var id string
 	err := p.database.QueryRow(sqlStatement,
 		floor.Name,
 		floor.DownloadURL,
+		floor.Address,
 	).Scan(&id)
 	if err != nil {
 		return "", err
@@ -90,10 +92,11 @@ func (p PostgresDBStore) queryMultipleFloors(sqlStatement string, args ...interf
 			&floor.ID,
 			&floor.Name,
 			&floor.DownloadURL,
+			&floor.Address,
 		)
 		if err != nil {
 			// dont cause panic here, log it
-			log.Printf("PostgresDBStore.queryMultipleOfferings: %v, sqlStatement: %s\n", err, sqlStatement)
+			log.Printf("PostgresDBStore.queryMultipleFloors: %v, sqlStatement: %s\n", err, sqlStatement)
 		}
 		floors = append(floors, &floor)
 	}

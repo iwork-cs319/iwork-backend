@@ -53,7 +53,7 @@ func (suite *AppTestSuite) SetupSuite() {
 		"../test-fixtures/book_offer.sql",
 	}
 	if err := utils.RunFixturesOnDB(dbUrl, fixtures); err != nil {
-		suite.FailNow("failed to create test db")
+		suite.FailNow("failed to create test db", err)
 	}
 	suite.app = NewTestApp()
 }

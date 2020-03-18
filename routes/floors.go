@@ -54,6 +54,13 @@ func (app *App) CreateFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	address := r.FormValue("address")
+	if address == "" {
+		log.Println("App.CreateFloor - address is absent")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	id, parseErr := app.gDrive.UploadFloorPlan(name, imageFile)
 	if parseErr != nil {
 		log.Println("App.CreateFloor - Failed to upload image to Google Drive")
@@ -62,6 +69,7 @@ func (app *App) CreateFloor(w http.ResponseWriter, r *http.Request) {
 	}
 	newFloor.Name = name
 	newFloor.DownloadURL = buildDriveDirectLink(id)
+	newFloor.Address = address
 	id, err = app.store.FloorProvider.CreateFloor(&newFloor)
 	if err != nil {
 		log.Printf("App.CreateBooking - error creating booking %v", err)

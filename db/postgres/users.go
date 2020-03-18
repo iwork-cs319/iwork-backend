@@ -3,6 +3,7 @@ package postgres
 import (
 	"go-api/model"
 	"log"
+	"time"
 )
 
 func (p PostgresDBStore) GetOneUser(id string) (*model.User, error) {
@@ -45,6 +46,39 @@ func (p PostgresDBStore) CreateUser(user *model.User) error {
 		return CreateError
 	}
 	return nil
+}
+
+func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAssignment, error) {
+	sqlStatement := `SELECT users.id, name, email, department, is_admin, wa.workspace_id FROM users 
+							INNER JOIN workspace_assignee wa ON users.id = wa.user_id
+							WHERE wa.start_time <= $1 AND (wa.end_time >= $2 OR end_time IS NULL)`
+	rows, err := p.database.Query(sqlStatement, start, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	users := make([]*model.UserAssignment, 0)
+	for rows.Next() {
+		var user model.UserAssignment
+		err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&user.Department,
+			&user.IsAdmin,
+			&user.WorkspaceId,
+		)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.GetAssignedUsers: %v, sqlStatement: %s\n", err, sqlStatement)
+		}
+		users = append(users, &user)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 //func (p PostgresDBStore) UpdateUser(id string, user *model.User) error {
