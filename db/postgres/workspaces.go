@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"database/sql"
 	"go-api/model"
 	"log"
 	"time"
@@ -17,32 +18,70 @@ func (p PostgresDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
 	return &workspace, nil
 }
 
+func (p PostgresDBStore) GetOneWorkspaceByFloorID(id string) (*model.Workspace, error) {
+	sqlStatement := `SELECT id, name, floor_id FROM workspaces WHERE floor_id=$1;`
+	var workspace model.Workspace
+	row := p.database.QueryRow(sqlStatement, id)
+	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor)
+	if err != nil {
+		return nil, err
+	}
+	return &workspace, nil
+}
+
 func (p PostgresDBStore) UpdateWorkspace(id string, workspace *model.Workspace) error {
-	sqlStatement :=
-		`UPDATE workspaces
-				SET name = $2, floor_id = $3
-				WHERE id = $1
-				RETURNING id, name;`
-	var _id string
-	var name string
-	err := p.database.QueryRow(sqlStatement, id, workspace.Name, workspace.Floor).Scan(&_id, &name)
+	tx, err := p.database.Begin()
+	defer tx.Rollback()
 	if err != nil {
 		return err
 	}
-	if _id != id || name != workspace.Name {
-		return CreateError
+	var workspaceId string
+	existsStmt := `SELECT id FROM workspaces WHERE name=$1 AND floor_id=$2`
+	err = tx.QueryRow(existsStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
+	if err != nil && err != sql.ErrNoRows {
+		return err
 	}
-	return nil
+	if err == sql.ErrNoRows {
+		sqlStatement :=
+			`UPDATE workspaces
+				SET name = $2, floor_id = $3
+				WHERE id = $1
+				RETURNING id, name;`
+		var _id string
+		var name string
+		err := p.database.QueryRow(sqlStatement, id, workspace.Name, workspace.Floor).Scan(&_id, &name)
+		if err != nil {
+			return err
+		}
+		if _id != id || name != workspace.Name {
+			return CreateError
+		}
+	}
+	err = tx.Commit()
+	return err
 }
 
 func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) (string, error) {
-	sqlStatement := `INSERT INTO workspaces(name, floor_id) VALUES ($1, $2) RETURNING id`
-	var id string
-	err := p.database.QueryRow(sqlStatement, workspace.Name, workspace.Floor).Scan(&id)
+	tx, err := p.database.Begin()
+	defer tx.Rollback()
 	if err != nil {
 		return "", err
 	}
-	return id, nil
+	var workspaceId string
+	existsStmt := `SELECT id FROM workspaces WHERE name=$1 AND floor_id=$2`
+	err = tx.QueryRow(existsStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
+	if err != nil && err != sql.ErrNoRows {
+		return "", err
+	}
+	if err == sql.ErrNoRows {
+		createWorkspaceStmt := `INSERT INTO workspaces(name, floor_id) VALUES ($1, $2) RETURNING id`
+		err = p.database.QueryRow(createWorkspaceStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
+		if err != nil {
+			return "", err
+		}
+	}
+	err = tx.Commit()
+	return workspaceId, err
 }
 
 func (p PostgresDBStore) RemoveWorkspace(id string) error {

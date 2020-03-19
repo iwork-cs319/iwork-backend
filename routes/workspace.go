@@ -42,7 +42,6 @@ func (app *App) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 	id, err := app.store.WorkspaceProvider.CreateWorkspace(&newWorkspace)
 	if err != nil {
 		log.Printf("App.CreateWorkspace - error creating workspace %v", err)
