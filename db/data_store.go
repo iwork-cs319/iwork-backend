@@ -31,6 +31,7 @@ type workspaceProvider interface {
 	GetAllWorkspacesByFloor(floorId string) ([]*model.Workspace, error)
 	FindAvailability(floorId string, start time.Time, end time.Time) ([]string, error)
 	CreateAssignment(userId, workspaceId string) error
+	CreateAssignWorkspace(workspace *model.Workspace, userId string) (string, error)
 }
 
 type bookingProvider interface {

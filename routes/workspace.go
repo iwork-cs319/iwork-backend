@@ -233,17 +233,12 @@ func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
 			Floor: floorMap[floorName],
 			Props: nil,
 		}
-		id, err := app.store.WorkspaceProvider.CreateWorkspace(workspace)
+		id, err := app.store.WorkspaceProvider.CreateAssignWorkspace(workspace, userId)
 		if err != nil {
-			log.Println("App.CreateAssignments - failed to create workspace: " + err.Error())
-		} else {
-			workspace.ID = id
-			workspaces = append(workspaces, workspace)
+			log.Println("App.CreateAssignments - failed to create workspace-assignment: " + err.Error())
 		}
-		err = app.store.WorkspaceProvider.CreateAssignment(userId, id)
-		if err != nil {
-			log.Println("App.CreateAssignments - failed to create assignment: " + err.Error())
-		}
+		workspace.ID = id
+		workspaces = append(workspaces, workspace)
 	}
 
 	w.WriteHeader(http.StatusCreated)
