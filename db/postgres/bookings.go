@@ -236,7 +236,6 @@ func (p PostgresDBStore) queryMultipleExpandedBookings(sqlStatement string, args
 			&eBooking.UserName,
 			&eBooking.FloorID,
 			&eBooking.FloorName,
-			&eBooking.CreatedBy,
 		)
 		if err != nil {
 			// dont cause panic here, log it
