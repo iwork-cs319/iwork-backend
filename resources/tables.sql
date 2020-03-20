@@ -49,7 +49,7 @@ CREATE TABLE offerings
     cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                     NOT NULL,
     end_time     TIMESTAMPTZ                     NOT NULL,
-    created_by   uuid REFERENCES users (id)      NOT NULL,
+    created_by   uuid REFERENCES users (id)      NOT NULL
 );
 
 CREATE TABLE workspace_assignee
@@ -59,4 +59,4 @@ CREATE TABLE workspace_assignee
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     start_time   TIMESTAMPTZ                     NOT NULL,
     end_time     TIMESTAMPTZ
-)
+);
