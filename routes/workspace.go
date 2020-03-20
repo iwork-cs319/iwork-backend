@@ -136,7 +136,7 @@ func (app *App) UpdateWorkspaceProps(w http.ResponseWriter, r *http.Request) {
 	workspaceID := mux.Vars(r)["id"]
 
 	if workspaceID == "" {
-		log.Printf("App.UpdateWorkspace - empty workspace id")
+		log.Printf("App.UpdateWorkspaceMetadata - empty workspace id")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -144,13 +144,13 @@ func (app *App) UpdateWorkspaceProps(w http.ResponseWriter, r *http.Request) {
 	var updatedProperties model.Attrs
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Printf("App.UpdateWorkspace - error reading request body %v", err)
+		log.Printf("App.UpdateWorkspaceMetadata - error reading request body %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = json.Unmarshal(reqBody, &updatedProperties)
 	if err != nil {
-		log.Printf("App.UpdateWorkspace - error unmarshaling request body %v", err)
+		log.Printf("App.UpdateWorkspaceMetadata - error unmarshaling request body %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
