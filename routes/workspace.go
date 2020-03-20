@@ -123,7 +123,7 @@ func (app *App) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 
 	err = app.store.WorkspaceProvider.UpdateWorkspace(workspaceID, &updatedWorkspace)
 	if err != nil {
-		log.Printf("App.UpdateWorkspace - error getting all workspaces from provider %v", err)
+		log.Printf("App.UpdateWorkspace - error updating workspace from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
