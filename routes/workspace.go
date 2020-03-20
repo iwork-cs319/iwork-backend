@@ -157,7 +157,7 @@ func (app *App) UpdateWorkspaceProps(w http.ResponseWriter, r *http.Request) {
 
 	err = app.store.WorkspaceProvider.UpdateWorkspaceMetadata(workspaceID, &updatedProperties)
 	if err != nil {
-		log.Printf("App.UpdateWorkspace - error updating workspace from provider %v", err)
+		log.Printf("App.UpdateWorkspaceMetadata - error updating workspace from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
