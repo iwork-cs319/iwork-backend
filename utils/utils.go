@@ -3,7 +3,6 @@ package utils
 import (
 	"database/sql"
 	"io/ioutil"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -16,12 +15,6 @@ func TimeStampToTime(timestamp string) (time.Time, error) {
 	}
 	tm := time.Unix(i, 0).UTC()
 	return tm, err
-}
-
-func CalendarGenerator(startTime time.Time, endTime time.Time, desc string, summary string, location string) {
-	// Title Booking for Workspace + id
-	// TODO: Build link
-	fmt.Sprintf(icsTemplate, desc+descEnd, startTime, endTime, location, summary)
 }
 
 func RunFixturesOnDB(dbUrl string, fileNames []string) error {
