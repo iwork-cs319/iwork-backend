@@ -28,7 +28,8 @@ CREATE TABLE workspaces
     floor_id uuid REFERENCES floors (id) NOT NULL,
     name     TEXT                        NOT NULL,
     locked   BOOLEAN          DEFAULT FALSE,
-    details  TEXT             DEFAULT ''
+    details  TEXT             DEFAULT '',
+    metadata JSON             DEFAULT '{}'::json
 );
 
 CREATE TABLE bookings
