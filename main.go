@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func main() {
+func main2() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
