@@ -48,7 +48,24 @@ func (c *ADClient) SendConfirmation(typeS string, params *mail.EmailParams) erro
 }
 
 func (c *ADClient) SendCancellation(typeS string, params *mail.EmailParams) error {
-	panic("implement me")
+	cancellationContent := fmt.Sprintf(
+		"Your %s for workspace %s on floor %s for the duration of %s to %s has now been cancelled. \n%s",
+		typeS, params.WorkspaceName,
+		params.FloorName,
+		params.Start.Format("Monday 02 Jan 06 15:04"),
+		params.End.Format("Monday 02 Jan 06 15:04"),
+		mail.EmailBody,
+	)
+	return c.sendEmail(&EmailBody{
+		subject: fmt.Sprintf("%s cancellation for %s", typeS, params.WorkspaceName),
+		content: cancellationContent,
+		attendees: []*Attendee{
+			{
+				email: params.Email,
+				name:  params.Name,
+			},
+		},
+	})
 }
 
 type Attendee struct {
@@ -65,10 +82,43 @@ type CalendarInvite struct {
 	attendees []*Attendee
 }
 
+type EmailBody struct {
+	subject   string
+	content   string
+	attendees []*Attendee
+}
+
 const TokenUrl = "https://login.microsoftonline.com/de28de2e-eaf8-4937-a102-735e764a6e31/oauth2/v2.0/token"
 const GraphUrl = "https://graph.microsoft.com/v1.0"
 
 func buildCalendarInviteBody(invite *CalendarInvite) []byte {
+	//{
+	//	"attendees": [
+	//		{
+	//			"emailAddress": {
+	//				"address": "bruce@cs319iwork.onmicrosoft.com",
+	//				"name": "Bruce Wayne"
+	//			},
+	//			"type": "required"
+	//		}
+	//	],
+	//	"body": {
+	//		"content": "sad",
+	//		"contentType": "HTML"
+	//	},
+	//	"end": {
+	//		"dateTime": "2020-03-23T00:03:16",
+	//		"timeZone": "Pacific Standard Time"
+	//	},
+	//	"location": {
+	//		"displayName": "W-001"
+	//	},
+	//	"start": {
+	//		"dateTime": "2020-03-21T20:16:36",
+	//		"timeZone": "Pacific Standard Time"
+	//	},
+	//	"subject": "Booking confirmation for W-001 at West 2nd Avenue"
+	//}
 	body := make(map[string]interface{})
 	body["subject"] = invite.subject
 	body["body"] = map[string]interface{}{
@@ -97,6 +147,51 @@ func buildCalendarInviteBody(invite *CalendarInvite) []byte {
 		attendees = append(attendees, attendee)
 	}
 	body["attendees"] = attendees
+	res, err := json.Marshal(body)
+	if err != nil {
+		return nil
+	}
+	return res
+}
+
+func buildEmailBody(email *EmailBody) []byte {
+	//{
+	//	"message": {
+	//		"subject": "Meet for lunch Again?",
+	//		"body": {
+	//			"contentType": "Text",
+	//			"content": "The new cafeteria is open."
+	//		},
+	//		"toRecipients": [
+	//			{
+	//				"emailAddress": {
+	//					"address": "bruce@cs319iwork.onmicrosoft.com"
+	//				}
+	//			}
+	//		]
+	//	},
+	//	"saveToSentItems": "true"
+	//}
+	var attendees []interface{}
+	for _, a := range email.attendees {
+		var attendee = make(map[string]interface{})
+		attendee["emailAddress"] = map[string]interface{}{
+			"address": a.email,
+			"name":    a.name,
+		}
+		attendees = append(attendees, attendee)
+	}
+	body := make(map[string]interface{})
+	body["message"] = map[string]interface{}{
+		"subject": email.subject,
+		"body": map[string]interface{}{
+			"contentType": "Text",
+			"content":     email.content,
+		},
+		"toRecipients": attendees,
+	}
+	body["saveToSentItems"] = true
+
 	res, err := json.Marshal(body)
 	if err != nil {
 		return nil
@@ -199,6 +294,21 @@ func (c *ADClient) sendCalendarInvite(invite *CalendarInvite) error {
 	_ = c.RefreshToken()
 	reqUrl := fmt.Sprintf("%s/users/%s/events", GraphUrl, c.adminUserId)
 	body := bytes.NewBuffer(buildCalendarInviteBody(invite))
+	resp, err := c.doRequest("POST", reqUrl, body)
+	defer resp.Body.Close()
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode >= 300 {
+		return errors.New(fmt.Sprintf("failed to send email, %d", resp.StatusCode))
+	}
+	return nil
+}
+
+func (c *ADClient) sendEmail(email *EmailBody) error {
+	_ = c.RefreshToken()
+	reqUrl := fmt.Sprintf("%s/users/%s/sendmail", GraphUrl, c.adminUserId)
+	body := bytes.NewBuffer(buildEmailBody(email))
 	resp, err := c.doRequest("POST", reqUrl, body)
 	defer resp.Body.Close()
 	if err != nil {
