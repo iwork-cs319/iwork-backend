@@ -33,7 +33,7 @@ func (c *ADClient) SendConfirmation(typeS string, params *mail.EmailParams) erro
 		mail.EmailBody,
 	)
 	return c.sendCalendarInvite(&CalendarInvite{
-		subject:   fmt.Sprintf("Booking confirmation for %s at %s", params.WorkspaceName, params.FloorName),
+		subject:   fmt.Sprintf("Booking for %s at %s", params.WorkspaceName, params.FloorName),
 		content:   inviteContent,
 		startTime: params.Start,
 		endTime:   params.End,
