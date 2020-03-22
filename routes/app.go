@@ -7,6 +7,7 @@ import (
 	"go-api/db"
 	"go-api/db/postgres"
 	"go-api/mail"
+	"go-api/microsoft"
 	"log"
 	"net/http"
 	"os"
@@ -20,13 +21,22 @@ type App struct {
 	email  mail.EmailClient
 }
 
-func NewApp(dbUrl, gDriveConfig string) *App {
-	store, err := postgres.NewPostgresDataStore(dbUrl)
+type AppConfig struct {
+	DbUrl          string
+	GDriveConfig   string
+	MsClientId     string
+	MsScope        string
+	MsClientSecret string
+	AdminUserId    string
+}
+
+func NewApp(config *AppConfig) *App {
+	store, err := postgres.NewPostgresDataStore(config.DbUrl)
 	if err != nil {
 		log.Println("Failed to connect to database")
 		log.Fatal(err)
 	}
-	driveClient, err := db.NewDriveClient(gDriveConfig)
+	driveClient, err := db.NewDriveClient(config.GDriveConfig)
 	if err != nil {
 		log.Println("Failed to connect to google drive")
 		log.Fatal(err)
@@ -36,13 +46,22 @@ func NewApp(dbUrl, gDriveConfig string) *App {
 		log.Println("Failed to connect to redis")
 		log.Fatal(err)
 	}
-	email, err := mail.NewSendGridClient()
+	msClient, err := microsoft.NewADClient(
+		config.MsClientId,
+		config.MsScope,
+		config.MsClientSecret,
+		config.AdminUserId,
+	)
+	if err != nil {
+		log.Println("Failed to create AD Client")
+		log.Fatal(err)
+	}
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
 		gDrive: driveClient,
 		cache:  cache,
-		email:  email,
+		email:  msClient,
 	}
 }
 

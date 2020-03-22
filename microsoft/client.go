@@ -1,9 +1,11 @@
 package microsoft
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-api/mail"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -21,27 +23,86 @@ type ADClient struct {
 	defaultClient *http.Client
 }
 
+func (c *ADClient) SendConfirmation(typeS string, params *mail.EmailParams) error {
+	inviteContent := fmt.Sprintf(
+		"Your %s for workspace %s on floor %s for the duration of %s to %s has now been confirmed. \n%s",
+		typeS, params.WorkspaceName,
+		params.FloorName,
+		params.Start.Format("Monday 02 Jan 06 15:04"),
+		params.End.Format("Monday 02 Jan 06 15:04"),
+		mail.EmailBody,
+	)
+	return c.sendCalendarInvite(&CalendarInvite{
+		subject:   fmt.Sprintf("Booking confirmation for %s at %s", params.WorkspaceName, params.FloorName),
+		content:   inviteContent,
+		startTime: params.Start,
+		endTime:   params.End,
+		location:  params.WorkspaceName,
+		attendees: []*Attendee{
+			{
+				email: params.Email,
+				name:  params.Name,
+			},
+		},
+	})
+}
+
+func (c *ADClient) SendCancellation(typeS string, params *mail.EmailParams) error {
+	panic("implement me")
+}
+
+type Attendee struct {
+	email string
+	name  string
+}
+
+type CalendarInvite struct {
+	subject   string
+	content   string
+	startTime time.Time
+	endTime   time.Time
+	location  string
+	attendees []*Attendee
+}
+
 const TokenUrl = "https://login.microsoftonline.com/de28de2e-eaf8-4937-a102-735e764a6e31/oauth2/v2.0/token"
 const GraphUrl = "https://graph.microsoft.com/v1.0"
-const EmailBody = `
-	{
-	  "message": {
-		"subject": "%s",
-		"body": {
-		  "contentType": "Text",
-		  "content": "%s"
-		},
-		"toRecipients": [
-		  {
-			"emailAddress": {
-			  "address": "%s"
-			}
-		  }
-		]
-	  },
-	  "saveToSentItems": "true"
+
+func buildCalendarInviteBody(invite *CalendarInvite) []byte {
+	body := make(map[string]interface{})
+	body["subject"] = invite.subject
+	body["body"] = map[string]interface{}{
+		"contentType": "HTML",
+		"content":     invite.content,
 	}
-`
+	body["start"] = map[string]interface{}{
+		"dateTime": invite.startTime.Format("2006-01-02T15:04:05"),
+		"timeZone": "Pacific Standard Time",
+	}
+	body["end"] = map[string]interface{}{
+		"dateTime": invite.endTime.Format("2006-01-02T15:04:05"),
+		"timeZone": "Pacific Standard Time",
+	}
+	body["location"] = map[string]interface{}{
+		"displayName": invite.location,
+	}
+	var attendees []interface{}
+	for _, a := range invite.attendees {
+		var attendee = make(map[string]interface{})
+		attendee["emailAddress"] = map[string]interface{}{
+			"address": a.email,
+			"name":    a.name,
+		}
+		attendee["type"] = "required"
+		attendees = append(attendees, attendee)
+	}
+	body["attendees"] = attendees
+	res, err := json.Marshal(body)
+	if err != nil {
+		return nil
+	}
+	return res
+}
 
 func NewADClient(clientId, scope, clientSecret, adminUserId string) (*ADClient, error) {
 	client := &ADClient{
@@ -61,6 +122,9 @@ func NewADClient(clientId, scope, clientSecret, adminUserId string) (*ADClient, 
 }
 
 func (c *ADClient) RefreshToken() error {
+	if err := c.Ping(); err == nil {
+		return nil
+	}
 	data := url.Values{}
 	data.Set("client_id", c.clientId)
 	data.Set("scope", c.scope)
@@ -90,7 +154,7 @@ func (c *ADClient) RefreshToken() error {
 }
 
 func (c *ADClient) newRequest(method string, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +167,19 @@ func (c *ADClient) doRequest(method string, url string, body io.Reader) (*http.R
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
 	return c.defaultClient.Do(req)
+}
+
+func (c *ADClient) Ping() error {
+	resp, err := c.doRequest("GET", GraphUrl, nil)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("token likely expired; statusCode=%d", resp.StatusCode))
+	}
+	return nil
 }
 
 func (c *ADClient) GetAllUsers() (map[string]interface{}, error) {
@@ -119,27 +195,17 @@ func (c *ADClient) GetAllUsers() (map[string]interface{}, error) {
 	return body, err
 }
 
-func (c *ADClient) SendMail(subject, toEmail, emailBody string) (map[string]interface{}, error) {
-	reqUrl := fmt.Sprintf("%s/users/%s/sendmail", GraphUrl, c.adminUserId)
-	body := strings.NewReader(fmt.Sprintf(EmailBody, subject, emailBody, toEmail))
-	req, err := http.NewRequest("POST", reqUrl, body)
-	if err != nil {
-		return nil, err
-	}
-	client := http.Client{
-		Timeout: 30 * time.Second,
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
+func (c *ADClient) sendCalendarInvite(invite *CalendarInvite) error {
+	_ = c.RefreshToken()
+	reqUrl := fmt.Sprintf("%s/users/%s/events", GraphUrl, c.adminUserId)
+	body := bytes.NewBuffer(buildCalendarInviteBody(invite))
+	resp, err := c.doRequest("POST", reqUrl, body)
 	defer resp.Body.Close()
-	reqBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var body map[string]interface{}
-	err = json.Unmarshal(reqBody, &body)
-	return body, err
+	if resp.StatusCode >= 300 {
+		return errors.New(fmt.Sprintf("failed to send email, %d", resp.StatusCode))
+	}
+	return nil
 }

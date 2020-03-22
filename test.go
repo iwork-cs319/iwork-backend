@@ -1,8 +1,10 @@
 package main
 
 import (
+	"go-api/mail"
 	"go-api/microsoft"
 	"log"
+	"time"
 )
 
 func main() {
@@ -15,13 +17,23 @@ func main() {
 		"713700f2-6fcf-4258-94bc-0c7986180460",
 		"https://graph.microsoft.com/.default",
 		"IL2qOE:m_P/pJ?AiGPDqO10MeoJzZp23",
+		"380ec12d-9d53-45a6-91da-c3a262cb3dca",
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	users, err := c.GetAllUsers()
+	_, err = c.GetAllUsers()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%v", users)
+	//log.Printf("%v", users)
+	err = c.SendConfirmation("booking", &mail.EmailParams{
+		Name:          "Bruce Wayne",
+		Email:         "bruce@cs319iwork.onmicrosoft.com",
+		WorkspaceName: "W-001",
+		FloorName:     "West 2nd Avenue",
+		Start:         time.Unix(1584846996, 0),
+		End:           time.Unix(1584946996, 0),
+	})
+	log.Println(err)
 }

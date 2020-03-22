@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 func (app *App) RegisterOfferingRoutes() {
@@ -67,8 +66,8 @@ func (app *App) CreateOffering(w http.ResponseWriter, r *http.Request) {
 				Email:         user.Email,
 				WorkspaceName: eOffering.WorkspaceName,
 				FloorName:     eOffering.FloorName,
-				Start:         eOffering.StartDate.Format(time.RFC850),
-				End:           eOffering.StartDate.Format(time.RFC850),
+				Start:         eOffering.StartDate,
+				End:           eOffering.EndDate,
 			},
 		)
 	} else {

@@ -7,6 +7,7 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"log"
 	"os"
+	"time"
 )
 
 type EmailParams struct {
@@ -14,8 +15,8 @@ type EmailParams struct {
 	Email         string
 	WorkspaceName string
 	FloorName     string
-	Start         string
-	End           string
+	Start         time.Time
+	End           time.Time
 }
 
 type EmailClient interface {

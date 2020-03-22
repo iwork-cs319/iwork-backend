@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 func (app *App) RegisterBookingRoutes() {
@@ -67,8 +66,8 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 				Email:         user.Email,
 				WorkspaceName: eBooking.WorkspaceName,
 				FloorName:     eBooking.FloorName,
-				Start:         eBooking.StartDate.Format(time.RFC850),
-				End:           eBooking.StartDate.Format(time.RFC850),
+				Start:         eBooking.StartDate,
+				End:           eBooking.EndDate,
 			},
 		)
 	} else {
