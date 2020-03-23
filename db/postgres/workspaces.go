@@ -193,28 +193,30 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 	}
 	if err == sql.ErrNoRows {
 		createWorkspaceStmt := `INSERT INTO workspaces(name, floor_id) VALUES ($1, $2) RETURNING id`
-		err = p.database.QueryRow(createWorkspaceStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
+		err = tx.QueryRow(createWorkspaceStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
 		if err != nil {
 			return "", err
 		}
 	}
-	var waId string
-	err = tx.QueryRow(`SELECT id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NOT NULL`, workspaceId).Scan(&waId)
-	if err != nil && err != sql.ErrNoRows {
-		return "", err
-	}
-	if err != sql.ErrNoRows {
-		updateStmt := `UPDATE workspace_assignee SET end_time=$2 WHERE id=$1 RETURNING id`
-		var x string
-		err = p.database.QueryRow(updateStmt, waId, now).Scan(&x)
-		if err != nil {
-			log.Printf("PostgresDBStore.CreateAssignment: error updating older assignment: %v\n", err)
+	if userId != "" {
+		var waId string
+		err = tx.QueryRow(`SELECT id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NOT NULL`, workspaceId).Scan(&waId)
+		if err != nil && err != sql.ErrNoRows {
+			return "", err
 		}
-	}
-	createAssignmentStmt := `INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
-	err = p.database.QueryRow(createAssignmentStmt, userId, workspaceId, now).Scan(&waId)
-	if err != nil {
-		return "", nil
+		if err != sql.ErrNoRows {
+			updateStmt := `UPDATE workspace_assignee SET end_time=$2 WHERE id=$1 RETURNING id`
+			var x string
+			err = tx.QueryRow(updateStmt, waId, now).Scan(&x)
+			if err != nil {
+				log.Printf("PostgresDBStore.CreateAssignment: error updating older assignment: %v\n", err)
+			}
+		}
+		createAssignmentStmt := `INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
+		err = tx.QueryRow(createAssignmentStmt, userId, workspaceId, now).Scan(&waId)
+		if err != nil {
+			return "", nil
+		}
 	}
 	err = tx.Commit()
 	return workspaceId, err
