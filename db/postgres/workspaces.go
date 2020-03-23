@@ -9,10 +9,10 @@ import (
 )
 
 func (p PostgresDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
-	sqlStatement := `SELECT id, name, floor_id, details FROM workspaces WHERE id=$1;`
+	sqlStatement := `SELECT id, name, floor_id, details, metadata FROM workspaces WHERE id=$1;`
 	var workspace model.Workspace
 	row := p.database.QueryRow(sqlStatement, id)
-	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &workspace.Details)
+	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &workspace.Details, &workspace.Props)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +67,19 @@ func (p PostgresDBStore) UpdateWorkspace(id string, workspace *model.Workspace) 
 	return err
 }
 
+func (p PostgresDBStore) UpdateWorkspaceMetadata(id string, properties *model.Attrs) error {
+	sqlStatement := `UPDATE workspaces SET metadata=$2 WHERE id=$1 RETURNING id`
+	var _id string
+	err := p.database.QueryRow(sqlStatement, id, properties).Scan(&_id)
+	if err != nil {
+		return err
+	}
+	if _id != id {
+		return CreateError
+	}
+	return nil
+}
+
 func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) (string, error) {
 	tx, err := p.database.Begin()
 	defer tx.Rollback()
@@ -95,7 +108,7 @@ func (p PostgresDBStore) RemoveWorkspace(id string) error {
 }
 
 func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
-	rows, err := p.database.Query(`SELECT id, name, floor_id, details FROM workspaces;`)
+	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces;`)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +116,7 @@ func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
 	workspaces := make([]*model.Workspace, 0)
 	for rows.Next() {
 		var workspace model.Workspace
-		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &workspace.Details)
+		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &workspace.Details, &workspace.Props)
 		if err != nil {
 			// dont cause panic here, log it
 			log.Printf("PostgresDBStore.GetAllWorkspaces: %v\n", err)
@@ -118,7 +131,7 @@ func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
 }
 
 func (p PostgresDBStore) GetAllWorkspacesByFloor(floorId string) ([]*model.Workspace, error) {
-	rows, err := p.database.Query(`SELECT id, name, floor_id, details FROM workspaces WHERE floor_id=$1;`, floorId)
+	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE floor_id=$1;`, floorId)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +139,7 @@ func (p PostgresDBStore) GetAllWorkspacesByFloor(floorId string) ([]*model.Works
 	workspaces := make([]*model.Workspace, 0)
 	for rows.Next() {
 		var workspace model.Workspace
-		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &workspace.Details)
+		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &workspace.Details, &workspace.Props)
 		if err != nil {
 			// dont cause panic here, log it
 			log.Printf("PostgresDBStore.GetAllWorkspacesByFloorId: %v\n", err)

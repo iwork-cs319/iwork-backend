@@ -1,13 +1,32 @@
 package model
 
-import "time"
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"time"
+)
+
+type Attrs map[string]interface{}
+
+func (a Attrs) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+func (a *Attrs) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(b, &a)
+}
 
 type Workspace struct {
-	ID      string                 `json:"id"`
-	Name    string                 `json:"name"`
-	Floor   string                 `json:"floor_id"`
-	Props   map[string]interface{} `json:"props"`
-	Details string                 `json:"details"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Floor   string `json:"floor_id"`
+	Props   Attrs  `json:"properties"`
+	Details string `json:"details"`
 }
 
 func (this *Workspace) Equal(other *Workspace) bool {

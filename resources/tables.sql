@@ -27,7 +27,8 @@ CREATE TABLE workspaces
     id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     floor_id uuid REFERENCES floors (id) NOT NULL,
     name     TEXT                        NOT NULL,
-    details  TEXT             DEFAULT ''
+    details  TEXT             DEFAULT '',
+    metadata JSON             DEFAULT '{}'::json
 );
 
 CREATE TABLE bookings
