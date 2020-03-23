@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"go-api/model"
+	"go-api/utils"
 	"log"
 	"time"
 )
+
+const BookingAdvanceTime = time.Hour * 24 * 30 * 6 // 6 months
 
 func (p PostgresDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
 	sqlStatement := `SELECT id, name, floor_id, details, metadata FROM workspaces WHERE id=$1;`
@@ -181,6 +184,8 @@ func (p PostgresDBStore) CreateAssignment(userId, workspaceId string) error {
 func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userId string) (string, error) {
 	tx, err := p.database.Begin()
 	now := time.Now()
+	cancelTime := now.Add(BookingAdvanceTime)
+	existing := false
 	defer tx.Rollback()
 	if err != nil {
 		return "", err
@@ -192,30 +197,69 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 		return "", err
 	}
 	if err == sql.ErrNoRows {
+		// it doesnt exist; create it
 		createWorkspaceStmt := `INSERT INTO workspaces(name, floor_id) VALUES ($1, $2) RETURNING id`
 		err = tx.QueryRow(createWorkspaceStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
 		if err != nil {
 			return "", err
 		}
-	}
-	if userId != "" {
+		existing = false
+	} else {
+		// Cancel any default offerings
+		var offeringId string
+		var startTime time.Time
+		err = tx.QueryRow(`SELECT id, start_time from offerings where workspace_id=$1 AND end_time IS NULL AND user_id=$2`, workspaceId, utils.EmptyUserUUID).Scan(&offeringId, &startTime)
+		if err != nil && err != sql.ErrNoRows {
+			return "", err
+		}
+		if startTime.After(cancelTime) {
+			cancelTime = startTime.Add(24 * time.Hour)
+		}
+		if err != sql.ErrNoRows {
+			updateStmt := `UPDATE offerings SET end_time=$2 WHERE id=$1 RETURNING id`
+			var x string
+			err = tx.QueryRow(updateStmt, offeringId, cancelTime).Scan(&x)
+			if err != nil {
+				log.Printf("PostgresDBStore.CreateAssignWorkspace: error updating existing default offering: %v\n", err)
+			}
+		}
+		// Cancel any existing assignments
 		var waId string
-		err = tx.QueryRow(`SELECT id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NOT NULL`, workspaceId).Scan(&waId)
+		err = tx.QueryRow(`SELECT id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NULL`, workspaceId).Scan(&waId)
 		if err != nil && err != sql.ErrNoRows {
 			return "", err
 		}
 		if err != sql.ErrNoRows {
 			updateStmt := `UPDATE workspace_assignee SET end_time=$2 WHERE id=$1 RETURNING id`
 			var x string
-			err = tx.QueryRow(updateStmt, waId, now).Scan(&x)
+			err = tx.QueryRow(updateStmt, waId, cancelTime).Scan(&x)
 			if err != nil {
-				log.Printf("PostgresDBStore.CreateAssignment: error updating older assignment: %v\n", err)
+				log.Printf("PostgresDBStore.CreateAssignWorkspace: error updating older assignment: %v\n", err)
 			}
 		}
-		createAssignmentStmt := `INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
-		err = tx.QueryRow(createAssignmentStmt, userId, workspaceId, now).Scan(&waId)
+		existing = true
+	}
+	createTime := cancelTime.Add(time.Hour * 24)
+	if !existing {
+		createTime = now
+	}
+	if userId != "" {
+		// Create an assignment
+		var waId string
+		createAssignmentStmt :=
+			`INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
+		err = tx.QueryRow(createAssignmentStmt, userId, workspaceId, createTime).Scan(&waId)
 		if err != nil {
 			return "", nil
+		}
+	} else {
+		// Create an offering
+		sqlStatement :=
+			`INSERT INTO offerings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+		var id string
+		err := tx.QueryRow(sqlStatement, utils.EmptyUserUUID, workspaceId, createTime, nil, utils.EmptyUserUUID).Scan(&id)
+		if err != nil {
+			return "", err
 		}
 	}
 	err = tx.Commit()

@@ -22,6 +22,9 @@ CREATE TABLE users
     is_admin   BOOLEAN
 );
 
+insert into users(id, name, department, email, is_admin)
+VALUES ('decade00-0000-4000-a000-000000000000', 'Default User', 'N/A', 'N/A', false);
+
 CREATE TABLE workspaces
 (
     id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -49,7 +52,7 @@ CREATE TABLE offerings
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                     NOT NULL,
-    end_time     TIMESTAMPTZ                     NOT NULL,
+    end_time     TIMESTAMPTZ,
     created_by   uuid REFERENCES users (id)      NOT NULL
 );
 
