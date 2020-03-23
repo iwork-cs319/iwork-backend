@@ -11,46 +11,53 @@ import (
 )
 
 var Workspace1 = &model.Workspace{
-	ID:    "a12411d3-d281-3735-b000-bf94b094d2af",
-	Name:  "W-001",
-	Floor: MainFloor.ID,
-	Props: nil,
+	ID:      "a12411d3-d281-3735-b000-bf94b094d2af",
+	Name:    "W-001",
+	Floor:   MainFloor.ID,
+	Props:   map[string]interface{}{},
+	Details: "",
 }
 var Workspace2 = &model.Workspace{
-	ID:    "f2188d5e-509f-3086-a031-d86da93a55c4",
-	Name:  "W-002",
-	Floor: MainFloor.ID,
-	Props: nil,
+	ID:      "f2188d5e-509f-3086-a031-d86da93a55c4",
+	Name:    "W-002",
+	Floor:   MainFloor.ID,
+	Props:   map[string]interface{}{},
+	Details: "",
 }
 var Workspace3 = &model.Workspace{
-	ID:    "62eb266e-740d-3973-9e50-77b0287e3026",
-	Name:  "W-003",
-	Floor: MainFloor.ID,
-	Props: nil,
+	ID:      "62eb266e-740d-3973-9e50-77b0287e3026",
+	Name:    "W-003",
+	Floor:   MainFloor.ID,
+	Props:   map[string]interface{}{},
+	Details: "",
 }
 var Workspace4 = &model.Workspace{
-	ID:    "5e56de3d-2323-372d-897f-23d6037c8581",
-	Name:  "W-004",
-	Floor: MainFloor.ID,
-	Props: nil,
+	ID:      "5e56de3d-2323-372d-897f-23d6037c8581",
+	Name:    "W-004",
+	Floor:   MainFloor.ID,
+	Props:   map[string]interface{}{},
+	Details: "",
 }
 var Workspace5 = &model.Workspace{
-	ID:    "aad40cbb-4baf-3931-a5d2-6f98b414182a",
-	Name:  "W-005",
-	Floor: MainFloor.ID,
-	Props: nil,
+	ID:      "aad40cbb-4baf-3931-a5d2-6f98b414182a",
+	Name:    "W-005",
+	Floor:   MainFloor.ID,
+	Props:   map[string]interface{}{},
+	Details: "",
 }
 var Workspace6 = &model.Workspace{
-	ID:    "bb15369d-e6e0-33b8-8b97-1779f8865890",
-	Name:  "W-006",
-	Floor: MainFloor.ID,
-	Props: nil,
+	ID:      "bb15369d-e6e0-33b8-8b97-1779f8865890",
+	Name:    "W-006",
+	Floor:   MainFloor.ID,
+	Props:   map[string]interface{}{},
+	Details: "",
 }
 var Workspace7 = &model.Workspace{
-	ID:    "3361d373-781a-34d7-bbb8-c7d562a0cf51",
-	Name:  "W-007",
-	Floor: MainFloor.ID,
-	Props: nil,
+	ID:      "3361d373-781a-34d7-bbb8-c7d562a0cf51",
+	Name:    "W-007",
+	Floor:   MainFloor.ID,
+	Props:   map[string]interface{}{},
+	Details: "",
 }
 
 func (suite *AppTestSuite) TestGetAvailable() {

@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 type testRouteConfig struct {
@@ -84,4 +85,10 @@ func NewTestApp() *App {
 		store:  store,
 		gDrive: nil,
 	}
+}
+
+// Utils
+func date(str string) time.Time {
+	parse, _ := time.Parse(time.RFC3339, str)
+	return parse
 }

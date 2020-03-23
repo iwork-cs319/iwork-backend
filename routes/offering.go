@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"go-api/model"
@@ -57,7 +58,7 @@ func (app *App) CreateOffering(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = app.store.OfferingProvider.GetOfferingsByWorkspaceIDAndDateRange(newOffering.WorkspaceID, newOffering.StartDate, newOffering.EndDate)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		log.Printf("App.CreateOffering - error cannot create offering, it already exists! %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
