@@ -22,17 +22,6 @@ func (p PostgresDBStore) GetOneWorkspace(id string) (*model.Workspace, error) {
 	return &workspace, nil
 }
 
-func (p PostgresDBStore) GetOneWorkspaceByFloorID(id string) (*model.Workspace, error) {
-	sqlStatement := `SELECT id, name, floor_id FROM workspaces WHERE floor_id=$1;`
-	var workspace model.Workspace
-	row := p.database.QueryRow(sqlStatement, id)
-	err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Floor)
-	if err != nil {
-		return nil, err
-	}
-	return &workspace, nil
-}
-
 func (p PostgresDBStore) UpdateWorkspace(id string, workspace *model.Workspace) error {
 	tx, err := p.database.Begin()
 	defer tx.Rollback()
