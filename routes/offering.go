@@ -309,19 +309,7 @@ func (app *App) RemoveOffering(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	offering, err := app.store.OfferingProvider.GetOneOffering(offeringID)
-	if err != nil {
-		log.Printf("App.RemoveOffering - offering does not exist")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	boolean, err := app.store.AssigneeProvider.IsFullyAssigned(offering.WorkspaceID)
-	if !boolean {
-		log.Printf("App.RemoveOffering - offering not for assigned seating, cannot be cancelled.")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	err = app.store.OfferingProvider.RemoveOffering(offeringID)
+	err := app.store.OfferingProvider.RemoveOffering(offeringID)
 	if err != nil {
 		log.Printf("App.RemoveOffering - error getting all offerings from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)

@@ -1,7 +1,9 @@
 package postgres
 
 import (
+	"errors"
 	"go-api/model"
+	"go-api/utils"
 	"log"
 	"time"
 )
@@ -186,13 +188,37 @@ func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) err
 }
 
 func (p PostgresDBStore) RemoveOffering(id string) error {
+	tx, err := p.database.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var userId, workspaceId string
+	var start, end time.Time
+	err = tx.QueryRow(`SELECT user_id, workspace_id, start_time, end_time FROM offerings WHERE id=$1`,
+		id,
+	).Scan(&userId, &workspaceId, &start, &end)
+	if err != nil {
+		return err
+	}
+	if userId == utils.EmptyUserUUID {
+		return errors.New("invalid operation: cannot remove offerings by default user")
+	}
+	var count int
+	err = tx.QueryRow(
+		`SELECT count(*) FROM bookings WHERE workspace_id=$1 AND (start_time >= $2 AND end_time <= $3)`,
+		workspaceId, start, end,
+	).Scan(&count)
+	if count > 0 {
+		return errors.New("conflicting bookings for this offering period; cannot delete")
+	}
 	sqlStatement :=
 		`UPDATE offerings
 				SET cancelled = true
 				WHERE id = $1
 				RETURNING id;`
 	var _id string
-	err := p.database.QueryRow(sqlStatement,
+	err = tx.QueryRow(sqlStatement,
 		id,
 	).Scan(&_id)
 	if err != nil {
@@ -201,7 +227,7 @@ func (p PostgresDBStore) RemoveOffering(id string) error {
 	if _id != id {
 		return CreateError
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...interface{}) ([]*model.Offering, error) {
