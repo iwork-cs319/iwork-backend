@@ -34,5 +34,6 @@ func NewPostgresDataStore(dbUrl string) (*db.DataStore, error) {
 		OfferingProvider:  dbStore,
 		UserProvider:      dbStore,
 		FloorProvider:     dbStore,
+		AssigneeProvider:  dbStore,
 	}, nil
 }

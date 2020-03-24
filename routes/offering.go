@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (app *App) RegisterOfferingRoutes() {
@@ -23,7 +24,7 @@ func (app *App) RegisterOfferingRoutes() {
 	app.router.HandleFunc("/offerings", app.GetOfferingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/offerings", app.GetAllOfferings).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/offerings", app.GetAllOfferings).Methods("GET")
-	app.router.HandleFunc("/offerings/{id}", app.UpdateOffering).Methods("PATCH")
+	//app.router.HandleFunc("/offerings/{id}", app.UpdateOffering).Methods("PATCH")
 	app.router.HandleFunc("/offerings/{id}", app.RemoveOffering).Methods("DELETE")
 }
 
@@ -45,11 +46,14 @@ func (app *App) CreateOffering(w http.ResponseWriter, r *http.Request) {
 	if newOffering.CreatedBy == "" {
 		newOffering.CreatedBy = newOffering.UserID
 	}
-
 	id, err := app.store.OfferingProvider.CreateOffering(&newOffering)
 	if err != nil {
 		log.Printf("App.CreateOffering - error creating offering %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		if strings.Contains(err.Error(), "invalid") {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 	newOffering.ID = id
@@ -292,11 +296,14 @@ func (app *App) RemoveOffering(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 	err := app.store.OfferingProvider.RemoveOffering(offeringID)
 	if err != nil {
 		log.Printf("App.RemoveOffering - error getting all offerings from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
+		if strings.Contains(err.Error(), "invalid") {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
 		return
 	}
 	w.WriteHeader(http.StatusOK)

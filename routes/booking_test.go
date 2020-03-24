@@ -83,15 +83,15 @@ var Booking6 = &model.Booking{
 	EndDate:     endBooking6,
 	CreatedBy:   "e99a988a-1d41-3997-8d59-959a48ac24a0",
 }
-var startBooking7, _ = utils.TimeStampToTime("1548547200")
-var endBooking7, _ = utils.TimeStampToTime("1548719999")
-var Booking7 = &model.Booking{
+var startBooking8, _ = utils.TimeStampToTime("1548547200")
+var endBooking8, _ = utils.TimeStampToTime("1548719999")
+var Booking8 = &model.Booking{
 	ID:          "723ac86b-e0e8-39bd-b407-0c1ced6f2d93",
 	UserID:      "e99a988a-1d41-3997-8d59-959a48ac24a0",
 	WorkspaceID: "aad40cbb-4baf-3931-a5d2-6f98b414182a",
 	Cancelled:   false,
-	StartDate:   startBooking7,
-	EndDate:     endBooking7,
+	StartDate:   startBooking8,
+	EndDate:     endBooking8,
 	CreatedBy:   "e99a988a-1d41-3997-8d59-959a48ac24a0",
 }
 var startBooking11, _ = utils.TimeStampToTime("1548547200")
@@ -101,8 +101,8 @@ var Booking11 = &model.Booking{
 	UserID:      "e99a988a-1d41-3997-8d59-959a48ac24a0",
 	WorkspaceID: "bb15369d-e6e0-33b8-8b97-1779f8865890",
 	Cancelled:   false,
-	StartDate:   startBooking7,
-	EndDate:     endBooking7,
+	StartDate:   startBooking11,
+	EndDate:     endBooking11,
 	CreatedBy:   "e99a988a-1d41-3997-8d59-959a48ac24a0",
 }
 
@@ -160,7 +160,7 @@ func (suite *AppTestSuite) TestGetAllBookings() {
 	assert.Contains(t, payload, Booking4)
 	assert.Contains(t, payload, Booking5)
 	assert.Contains(t, payload, Booking6)
-	assert.Contains(t, payload, Booking7)
+	assert.Contains(t, payload, Booking8)
 }
 
 func (suite *AppTestSuite) TestGetOneBookingByWorkspaceIDFail() {
@@ -256,8 +256,8 @@ func (suite *AppTestSuite) TestGetBookingsByUserID() {
 }
 
 func (suite *AppTestSuite) TestGetBookingsByDateRange() {
-	bookingStart := "1548547200"
-	bookingEnd := "1548719999"
+	bookingStart := "1548547200" // 27 Jan 2019 00:00:00
+	bookingEnd := "1548719999"   // 28 Jan 2019 23:59:59
 	t := suite.T()
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
@@ -275,8 +275,8 @@ func (suite *AppTestSuite) TestGetBookingsByDateRange() {
 	for _, p := range payload {
 		log.Printf(p.ID)
 	}
-	assert.Equal(t, 2, len(payload), "testGetBookingsByDateRange: incorrect response size")
-	expectedBookings := []*model.Booking{Booking11, Booking7}
+	assert.Equal(t, 3, len(payload), "testGetBookingsByDateRange: incorrect response size")
+	expectedBookings := []*model.Booking{Booking11, Booking8, Booking2}
 	for _, expected := range expectedBookings {
 		found := false
 		for _, b := range payload {
@@ -290,15 +290,13 @@ func (suite *AppTestSuite) TestGetBookingsByDateRange() {
 	}
 }
 
-var startBookingNew, _ = utils.TimeStampToTime("1583884800")
-var endBookingNew, _ = utils.TimeStampToTime("1583971199")
 var newBooking = &model.Booking{
 	ID:          "", // Unknown at this point
 	UserID:      "32ea2fb1-7124-304a-b9c3-eb445578103e",
 	WorkspaceID: "5e56de3d-2323-372d-897f-23d6037c8581",
 	Cancelled:   false,
-	StartDate:   startBookingNew,
-	EndDate:     endBookingNew,
+	StartDate:   date("2019-01-16T00:00:00Z"),
+	EndDate:     date("2019-01-18T00:00:00Z"),
 	CreatedBy:   "8b5bb736-6a1d-3378-8e71-ab45fe8beb84",
 }
 
@@ -335,7 +333,7 @@ func (suite *AppTestSuite) Test_CreateBooking() {
 	})
 	// Check correct response
 
-	assert.Equal(t, rr2.Code, http.StatusCreated, "status code")
+	assert.Equal(t, http.StatusCreated, rr2.Code, "status code")
 	var payload2 *model.Booking
 	_ = json.Unmarshal(rr2.Body.Bytes(), &payload2)
 	// Just give it the ID since we want to use assert
@@ -387,7 +385,7 @@ func (suite *AppTestSuite) Test_PatchBooking() {
 func (suite *AppTestSuite) Test_ZDeleteBooking() {
 	t := suite.T()
 	// Assume ID exists since we just created and patched it
-	existingID := "723ac86b-e0e8-39bd-b407-0c1ced6f2d93"
+	existingID := newBooking.ID
 	rr2 := executeReq(t, &testRouteConfig{
 		Method:  http.MethodDelete,
 		Body:    nil,

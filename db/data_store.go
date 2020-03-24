@@ -16,6 +16,7 @@ type DataStore struct {
 	UserProvider      userProvider
 	FloorProvider     floorProvider
 	OfferingProvider  offeringProvider
+	AssigneeProvider  assigneeProvider
 }
 
 type Closable interface {
@@ -79,7 +80,13 @@ type offeringProvider interface {
 	GetExpandedOfferingsByUserID(id string) ([]*model.ExpandedOffering, error)
 	GetOfferingsByDateRange(start time.Time, end time.Time) ([]*model.Offering, error)
 	GetExpandedOfferingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedOffering, error)
+	GetOfferingsByWorkspaceIDAndDateRange(id string, start time.Time, end time.Time) (*model.Offering, error)
 	CreateOffering(booking *model.Offering) (string, error)
 	UpdateOffering(id string, booking *model.Offering) error
 	RemoveOffering(id string) error
+}
+
+type assigneeProvider interface {
+	IsAssigned(id string, start time.Time, end time.Time) (bool, error)
+	IsFullyAssigned(id string, start time.Time, end time.Time) (bool, error)
 }

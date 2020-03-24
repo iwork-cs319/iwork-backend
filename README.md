@@ -5,7 +5,7 @@ This is the backend REST API for booking/viewing workspaces
 ### GET /users  
 - Get All users objects  
 
-### GET /users/:id  
+### GET /users:id  
 - Get user object with `id`  
   
 ### POST /users

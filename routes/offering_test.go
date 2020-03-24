@@ -282,15 +282,13 @@ func (suite *AppTestSuite) TestGetOfferingsByDateRange() {
 	}
 }
 
-var startNew, _ = utils.TimeStampToTime("1583884800")
-var endNew, _ = utils.TimeStampToTime("1583971199")
 var newOffering = &model.Offering{
 	ID:          "", // Unknown at this point
 	UserID:      "32ea2fb1-7124-304a-b9c3-eb445578103e",
 	WorkspaceID: "5e56de3d-2323-372d-897f-23d6037c8581",
 	Cancelled:   false,
-	StartDate:   startNew,
-	EndDate:     endNew,
+	StartDate:   date("2021-03-24T00:00:00Z"),
+	EndDate:     date("2021-03-24T23:59:59Z"),
 	CreatedBy:   "8b5bb736-6a1d-3378-8e71-ab45fe8beb84",
 }
 
@@ -337,8 +335,8 @@ func (suite *AppTestSuite) Test_CreateOffering() {
 
 func (suite *AppTestSuite) Test_PatchOffering() {
 	t := suite.T()
-	var startPatch, _ = utils.TimeStampToTime("7952342400")
-	var endPatch, _ = utils.TimeStampToTime("7952515199")
+	startPatch := date("2022-03-24T00:00:00Z")
+	endPatch := date("2022-03-24T00:00:00Z")
 	var patchOffering = &model.Offering{
 		ID:          "",
 		UserID:      "8b5bb736-6a1d-3378-8e71-ab45fe8beb84",
@@ -379,7 +377,7 @@ func (suite *AppTestSuite) Test_PatchOffering() {
 func (suite *AppTestSuite) Test_ZDeleteOffering() { // Z to make it be performed last
 	t := suite.T()
 	// Assume ID exists since we just created and patched it
-	existingID := "e44dfa5c-fad5-3aa9-8951-fd0ed9d66f18"
+	existingID := newOffering.ID
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodDelete,
 		Body:    nil,
@@ -390,7 +388,7 @@ func (suite *AppTestSuite) Test_ZDeleteOffering() { // Z to make it be performed
 		},
 	})
 	// Response 200
-	assert.Equal(t, rr.Code, http.StatusOK, "status code")
+	assert.Equal(t, http.StatusOK, rr.Code, "status code")
 	// Check that the id cannot be found in the database
 	rr2 := executeReq(t, &testRouteConfig{
 		Method:  http.MethodGet,
