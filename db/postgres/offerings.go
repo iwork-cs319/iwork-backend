@@ -233,12 +233,14 @@ func (p PostgresDBStore) RemoveOffering(id string) error {
 	if err != nil {
 		return err
 	}
-	if userId == utils.EmptyUserUUID {
+	if userId == utils.EmptyUserUUID { // check if offering is for a unassigned workspace
 		return errors.New("invalid operation: cannot remove offerings by default user")
 	}
+
+	// Check for any bookings in this offering period
 	var count int
 	err = tx.QueryRow(
-		`SELECT count(*) FROM bookings WHERE workspace_id=$1 AND (start_time >= $2 AND end_time <= $3)`,
+		`SELECT count(*) FROM bookings WHERE workspace_id=$1 AND cancelled=FALSE AND (start_time >= $2 AND end_time <= $3)`,
 		workspaceId, start, end,
 	).Scan(&count)
 	if count > 0 {

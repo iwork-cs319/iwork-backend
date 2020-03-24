@@ -50,7 +50,6 @@ type bookingProvider interface {
 	CreateBooking(booking *model.Booking) (string, error)
 	UpdateBooking(id string, booking *model.Booking) error
 	RemoveBooking(id string) error
-	IsBooked(id string, start time.Time, end time.Time) (bool, error)
 }
 
 type userProvider interface {
