@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"database/sql"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"go-api/model"
@@ -10,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (app *App) RegisterOfferingRoutes() {
@@ -46,27 +46,14 @@ func (app *App) CreateOffering(w http.ResponseWriter, r *http.Request) {
 	if newOffering.CreatedBy == "" {
 		newOffering.CreatedBy = newOffering.UserID
 	}
-	boolean, err := app.store.AssigneeProvider.IsFullyAssigned(newOffering.WorkspaceID)
-	if err != nil {
-		log.Printf("App.CreateOffering - error checking assignment with workspace ID %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if !boolean { // If it isn't fully assigned
-		log.Printf("App.CreateOffering - error cannot create assignment on non-assigned workspace %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	_, err = app.store.OfferingProvider.GetOfferingsByWorkspaceIDAndDateRange(newOffering.WorkspaceID, newOffering.StartDate, newOffering.EndDate)
-	if err != nil && err != sql.ErrNoRows {
-		log.Printf("App.CreateOffering - error cannot create offering, it already exists! %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	id, err := app.store.OfferingProvider.CreateOffering(&newOffering)
 	if err != nil {
 		log.Printf("App.CreateOffering - error creating offering %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		if strings.Contains(err.Error(), "invalid") {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 	newOffering.ID = id
@@ -312,7 +299,11 @@ func (app *App) RemoveOffering(w http.ResponseWriter, r *http.Request) {
 	err := app.store.OfferingProvider.RemoveOffering(offeringID)
 	if err != nil {
 		log.Printf("App.RemoveOffering - error getting all offerings from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
+		if strings.Contains(err.Error(), "invalid") {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
 		return
 	}
 	w.WriteHeader(http.StatusOK)

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 	"go-api/model"
 	"log"
 	"time"
@@ -131,10 +132,40 @@ func (p PostgresDBStore) GetExpandedBookingsByDateRange(start time.Time, end tim
 }
 
 func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
+	tx, err := p.database.Begin()
+	if err != nil {
+		return "", nil
+	}
+	// Check if offering still exists
+	var count int
+	err = tx.QueryRow(
+		`SELECT count(*) FROM offerings 
+					WHERE workspace_id=$1 AND cancelled=FALSE AND
+                    	   (start_time <= $2 AND (end_time >= $3 OR end_time IS NULL))`,
+		booking.WorkspaceID, booking.StartDate, booking.EndDate,
+	).Scan(&count)
+	if err != nil || count == 0 {
+		return "", errors.New("invalid operation: workspace is not offered")
+	}
+
+	// Check for conflicts
+	err = tx.QueryRow(
+		`SELECT count(*) FROM bookings 
+					WHERE workspace_id=$1 AND cancelled=FALSE AND
+                    	   ((start_time <= $2 AND end_time >= $3) OR
+                    	    (start_time <= $2 AND end_time >= $2) OR 
+                    	    (start_time <= $3 AND end_time >= $3) OR
+                    	    (start_time >= $2 AND end_time <= $3))`,
+		booking.WorkspaceID, booking.StartDate, booking.EndDate,
+	).Scan(&count)
+	if err != nil || count > 0 {
+		return "", errors.New("invalid operation: workspace already booked for this duration")
+	}
+
 	sqlStatement :=
 		`INSERT INTO bookings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 	var id string
-	err := p.database.QueryRow(sqlStatement,
+	err = tx.QueryRow(sqlStatement,
 		booking.UserID,
 		booking.WorkspaceID,
 		booking.StartDate,
@@ -144,7 +175,7 @@ func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return id, nil
+	return id, tx.Commit()
 }
 
 func (p PostgresDBStore) UpdateBooking(id string, booking *model.Booking) error {

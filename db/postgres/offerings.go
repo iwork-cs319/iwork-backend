@@ -145,10 +145,42 @@ func (p PostgresDBStore) GetOfferingsByWorkspaceIDAndDateRange(id string, start 
 }
 
 func (p PostgresDBStore) CreateOffering(offering *model.Offering) (string, error) {
+	tx, err := p.database.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	// Check if its currently assigned
+	var count int
+	err = tx.QueryRow(
+		`SELECT count(*) FROM workspace_assignee 
+					WHERE workspace_id=$1 AND 
+                    	   (start_time <= $2 AND (end_time >= $3 OR end_time IS NULL))`,
+		offering.WorkspaceID, offering.StartDate, offering.EndDate,
+	).Scan(&count)
+	if err != nil || count == 0 {
+		return "", errors.New("invalid operation: unassigned workspace cannot be offered")
+	}
+
+	// Check for conflicts
+	err = tx.QueryRow(
+		`SELECT count(*) FROM offerings 
+					WHERE workspace_id=$1 AND cancelled=FALSE AND
+                    	   ((start_time <= $2 AND end_time >= $3) OR
+                    	    (start_time <= $2 AND end_time >= $2) OR 
+                    	    (start_time <= $3 AND end_time >= $3) OR
+                    	    (start_time >= $2 AND end_time <= $3))`,
+		offering.WorkspaceID, offering.StartDate, offering.EndDate,
+	).Scan(&count)
+	if err != nil || count > 0 {
+		return "", errors.New("invalid operation: workspace already offered for this duration")
+	}
+
 	sqlStatement :=
 		`INSERT INTO offerings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 	var id string
-	err := p.database.QueryRow(sqlStatement,
+	err = tx.QueryRow(sqlStatement,
 		offering.UserID,
 		offering.WorkspaceID,
 		offering.StartDate,
@@ -158,7 +190,7 @@ func (p PostgresDBStore) CreateOffering(offering *model.Offering) (string, error
 	if err != nil {
 		return "", err
 	}
-	return id, nil
+	return id, tx.Commit()
 }
 
 func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) error {
@@ -210,7 +242,7 @@ func (p PostgresDBStore) RemoveOffering(id string) error {
 		workspaceId, start, end,
 	).Scan(&count)
 	if count > 0 {
-		return errors.New("conflicting bookings for this offering period; cannot delete")
+		return errors.New("invalid operation: conflicting bookings for this offering period; cannot delete")
 	}
 	sqlStatement :=
 		`UPDATE offerings
