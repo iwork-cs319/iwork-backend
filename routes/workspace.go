@@ -24,6 +24,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 	app.router.HandleFunc("/workspaces", app.GetAllWorkspacesByFloorId).Methods("GET").
 		Queries("floor", "{floor}")
 	app.router.HandleFunc("/workspaces", app.GetAllWorkspaces)
+	app.router.HandleFunc("/workspaces/{id}/props", app.UpdateWorkspaceProps).Methods("PATCH")
 	app.router.HandleFunc("/workspaces/{id}", app.UpdateWorkspace).Methods("PATCH")
 	//app.router.HandleFunc("/workspaces/{id}", app.DeleteWorkspace).Methods("DELETE")
 	app.router.HandleFunc("/assignments", app.CreateAssignments).Methods("POST")
@@ -44,7 +45,6 @@ func (app *App) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 	id, err := app.store.WorkspaceProvider.CreateWorkspace(&newWorkspace)
 	if err != nil {
 		log.Printf("App.CreateWorkspace - error creating workspace %v", err)
@@ -123,12 +123,44 @@ func (app *App) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 
 	err = app.store.WorkspaceProvider.UpdateWorkspace(workspaceID, &updatedWorkspace)
 	if err != nil {
-		log.Printf("App.UpdateWorkspace - error getting all workspaces from provider %v", err)
+		log.Printf("App.UpdateWorkspace - error updating workspace from provider %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updatedWorkspace)
+}
+
+func (app *App) UpdateWorkspaceProps(w http.ResponseWriter, r *http.Request) {
+	workspaceID := mux.Vars(r)["id"]
+
+	if workspaceID == "" {
+		log.Printf("App.UpdateWorkspaceMetadata - empty workspace id")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var updatedProperties model.Attrs
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("App.UpdateWorkspaceMetadata - error reading request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(reqBody, &updatedProperties)
+	if err != nil {
+		log.Printf("App.UpdateWorkspaceMetadata - error unmarshaling request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = app.store.WorkspaceProvider.UpdateWorkspaceMetadata(workspaceID, &updatedProperties)
+	if err != nil {
+		log.Printf("App.UpdateWorkspaceMetadata - error updating workspace from provider %v", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 //func (app *App) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -233,17 +265,12 @@ func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
 			Floor: floorMap[floorName],
 			Props: nil,
 		}
-		id, err := app.store.WorkspaceProvider.CreateWorkspace(workspace)
+		id, err := app.store.WorkspaceProvider.CreateAssignWorkspace(workspace, userId)
 		if err != nil {
-			log.Println("App.CreateAssignments - failed to create workspace: " + err.Error())
-		} else {
-			workspace.ID = id
-			workspaces = append(workspaces, workspace)
+			log.Println("App.CreateAssignments - failed to create workspace-assignment: " + err.Error())
 		}
-		err = app.store.WorkspaceProvider.CreateAssignment(userId, id)
-		if err != nil {
-			log.Println("App.CreateAssignments - failed to create assignment: " + err.Error())
-		}
+		workspace.ID = id
+		workspaces = append(workspaces, workspace)
 	}
 
 	w.WriteHeader(http.StatusCreated)

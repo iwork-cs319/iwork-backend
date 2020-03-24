@@ -1,7 +1,7 @@
 email, name, id, department, isAdmin
-arthur@iworkcs319.onmicrosoft.com,Arthur Curry,1a2e52c8-8f03-4170-952e-1fdb305369d3,Operations,False
-barry@iworkcs319.onmicrosoft.com,Barry Allen,f47e243f-4496-4e6a-899c-7d015730065d,Research and Development,False
-bruce@iworkcs319.onmicrosoft.com,Bruce Wayne,476bb5f4-3954-46bd-aeff-c54848453989,Research and Development,True
-clark@iworkcs319.onmicrosoft.com,Clark Kent,a09d8f67-03d2-4a75-94ff-ace4480acf0c,Marketing,False
-cs319.icbc_outlook.com#EXT#@iworkcs319.onmicrosoft.com,cs319.icbc@outlook.com,cs319.icbc,Executive,True
-diana@iworkcs319.onmicrosoft.com,Diana Prince,eb4a1245-deb9-43f9-8044-2676b5d30d37,Operations,False
+Arthur@cs319iwork.onmicrosoft.com,Arthur Curry,7402304f-05b0-48fa-8c13-fcb83cc56257,Operations,False
+barry@cs319iwork.onmicrosoft.com,Barry Allen,3aa43152-6875-4a3c-b446-4006e498ab46,Research and Development,False
+bruce@cs319iwork.onmicrosoft.com,Bruce Wayne,073f159a-9c08-4480-ab9d-2574a362af82,Research and Development,True
+clark@cs319iwork.onmicrosoft.com,Clark Kent,b61f4e23-3b62-4a3f-ac69-90a33ac225e0,Marketing,False
+diana@cs319iwork.onmicrosoft.com,Diana Prince,588a5596-6a9b-4415-a678-75dd3a253cb5,Operations,False
+admin@cs319iwork.onmicrosoft.com,Justice League,380ec12d-9d53-45a6-91da-c3a262cb3dca,Executive,True

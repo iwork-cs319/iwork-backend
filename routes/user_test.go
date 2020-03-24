@@ -13,6 +13,13 @@ import (
 	"os"
 )
 
+var UserDefault = &model.User{
+	ID:         "decade00-0000-4000-a000-000000000000",
+	Name:       "Default User",
+	Department: "N/A",
+	IsAdmin:    false,
+	Email:      "N/A",
+}
 var UserBarry = &model.User{
 	ID:         "e99a988a-1d41-3997-8d59-959a48ac24a0",
 	Name:       "Barry Allen",
@@ -89,7 +96,8 @@ func (suite *AppTestSuite) TestGetAllUsers() {
 
 	var payload []*model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	assert.Equal(t, 4, len(payload), "incorrect response size")
+	assert.Equal(t, 5, len(payload), "incorrect response size")
+	assert.Contains(t, payload, UserDefault, "doesnt contain defaultUsers")
 	assert.Contains(t, payload, UserBarry, "doesnt contain barry")
 	assert.Contains(t, payload, UserDiana, "doesnt contain diana")
 	assert.Contains(t, payload, UserClark, "doesnt contain clark")

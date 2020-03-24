@@ -73,6 +73,7 @@ func (suite *AppTestSuite) TestGetAllFloors() {
 // https://gist.github.com/mattetti/5914158/f4d1393d83ebedc682a3c8e7bdc6b49670083b84
 func (suite *AppTestSuite) Test_CreateFloors() {
 	floorName := "test-floor"
+	floorAddress := "test-address"
 	fileId := "test-file-id"
 	mockDrive := new(mockDrive)
 	mockDrive.On("UploadFloorPlan", floorName).Return(fileId, nil)
@@ -88,6 +89,7 @@ func (suite *AppTestSuite) Test_CreateFloors() {
 
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", floorName)
+	_ = writer.WriteField("address", floorAddress)
 	part, _ := writer.CreateFormFile("image", "test-img.jpg")
 	_, _ = part.Write(fileContents)
 	_ = writer.Close()
@@ -110,6 +112,7 @@ func (suite *AppTestSuite) Test_CreateFloors() {
 	driveLink := fmt.Sprintf(`https://drive.google.com/uc?export=download&id=%s`, fileId)
 	assert.Equal(t, driveLink, payload.DownloadURL, "wrong drive url")
 	assert.Equal(t, floorName, payload.Name, "wrong floor name")
+	assert.Equal(t, floorAddress, payload.Address, "wrong floor address")
 }
 
 func (suite *AppTestSuite) Test_CreateFloorsEmptyName() {
@@ -148,6 +151,7 @@ func (suite *AppTestSuite) Test_CreateFloorsEmptyName() {
 
 func (suite *AppTestSuite) Test_CreateFloorsEmptyFile() {
 	floorName := "test-floor"
+	floorAddress := "test-address"
 	fileId := "test-file-id"
 	mockDrive := new(mockDrive)
 	mockDrive.On("UploadFloorPlan", floorName).Return(fileId, nil)
@@ -158,6 +162,7 @@ func (suite *AppTestSuite) Test_CreateFloorsEmptyFile() {
 
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", floorName)
+	_ = writer.WriteField("address", floorAddress)
 
 	rr := executeReq(t, &testRouteConfig{
 		Method:  http.MethodPost,
@@ -175,6 +180,7 @@ func (suite *AppTestSuite) Test_CreateFloorsEmptyFile() {
 
 func (suite *AppTestSuite) Test_CreateFloorsFailToUpload() {
 	floorName := "test-floor"
+	floorAddress := "test-address"
 	mockDrive := new(mockDrive)
 	mockDrive.On("UploadFloorPlan", floorName).
 		Return("", errors.New("some error"))
@@ -190,6 +196,7 @@ func (suite *AppTestSuite) Test_CreateFloorsFailToUpload() {
 
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", floorName)
+	_ = writer.WriteField("address", floorAddress)
 	part, _ := writer.CreateFormFile("image", "test-img.jpg")
 	_, _ = part.Write(fileContents)
 	_ = writer.Close()

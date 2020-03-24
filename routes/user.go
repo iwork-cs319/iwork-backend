@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"go-api/model"
+	"go-api/utils"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 )
 
 func (app *App) RegisterUserRoutes() {
+	app.router.HandleFunc("/users/assigned", app.GetAllAssignedUsers).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/users", app.CreateUsers).Methods("POST")
 	app.router.HandleFunc("/users/{id}", app.GetOneUser).Methods("GET")
 	//app.router.HandleFunc("/users/workspaces/{workspace_id}", app.GetUsersByWorkspaceID).Methods("GET")
@@ -106,6 +108,31 @@ func (app *App) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := app.store.UserProvider.GetAllUsers()
 	if err != nil {
 		log.Printf("App.GetAllUsers - error getting all users from provider %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(users)
+}
+
+func (app *App) GetAllAssignedUsers(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	start := queryParams["start"][0]
+	end := queryParams["end"][0]
+	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
+	endTime, errEnd := utils.TimeStampToTime(end)
+	if errStart != nil {
+		log.Printf("App.GetAllAssignedUsers - empty start time param: %v", errStart)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if errEnd != nil {
+		log.Printf("App.GetAllAssignedUsers - empty end time param: %v", errEnd)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	users, err := app.store.UserProvider.GetAssignedUsers(startTime, endTime)
+	if err != nil {
+		log.Printf("App.GetAllAssignedUsers - error getting all users from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

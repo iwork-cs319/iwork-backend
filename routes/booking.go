@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (app *App) RegisterBookingRoutes() {
@@ -23,7 +24,7 @@ func (app *App) RegisterBookingRoutes() {
 	app.router.HandleFunc("/bookings", app.GetBookingsByDateRange).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET").Queries("expand", "{expand}")
 	app.router.HandleFunc("/bookings", app.GetAllBookings).Methods("GET") // Handles when Query is empty
-	app.router.HandleFunc("/bookings/{id}", app.UpdateBooking).Methods("PATCH")
+	//app.router.HandleFunc("/bookings/{id}", app.UpdateBooking).Methods("PATCH")
 	app.router.HandleFunc("/bookings/{id}", app.RemoveBooking).Methods("DELETE")
 }
 
@@ -36,7 +37,6 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 	err = json.Unmarshal(reqBody, &newBooking)
 	if err != nil {
 		log.Printf("App.CreateBooking - error unmarshaling request body %v", err)
@@ -46,11 +46,14 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	if newBooking.CreatedBy == "" {
 		newBooking.CreatedBy = newBooking.UserID
 	}
-
 	id, err := app.store.BookingProvider.CreateBooking(&newBooking)
 	if err != nil {
 		log.Printf("App.CreateBooking - error creating booking %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		if strings.Contains(err.Error(), "invalid") {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 	newBooking.ID = id

@@ -9,7 +9,8 @@ CREATE TABLE floors
 (
     id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     name         TEXT NOT NULL,
-    download_url TEXT NOT NULL
+    download_url TEXT NOT NULL,
+    address      TEXT NOT NULL
 );
 
 CREATE TABLE users
@@ -21,12 +22,16 @@ CREATE TABLE users
     is_admin   BOOLEAN
 );
 
+insert into users(id, name, department, email, is_admin)
+VALUES ('decade00-0000-4000-a000-000000000000', 'Default User', 'N/A', 'N/A', false);
+
 CREATE TABLE workspaces
 (
     id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     floor_id uuid REFERENCES floors (id) NOT NULL,
     name     TEXT                        NOT NULL,
-    locked   BOOLEAN          DEFAULT FALSE
+    details  TEXT             DEFAULT '',
+    metadata JSON             DEFAULT '{}'::json
 );
 
 CREATE TABLE bookings
@@ -47,7 +52,7 @@ CREATE TABLE offerings
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     cancelled    BOOLEAN          DEFAULT FALSE,
     start_time   TIMESTAMPTZ                     NOT NULL,
-    end_time     TIMESTAMPTZ                     NOT NULL,
+    end_time     TIMESTAMPTZ,
     created_by   uuid REFERENCES users (id)      NOT NULL
 );
 
@@ -58,4 +63,4 @@ CREATE TABLE workspace_assignee
     workspace_id uuid REFERENCES workspaces (id) NOT NULL,
     start_time   TIMESTAMPTZ                     NOT NULL,
     end_time     TIMESTAMPTZ
-)
+);

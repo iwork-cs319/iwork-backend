@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 type testRouteConfig struct {
@@ -54,7 +55,7 @@ func (suite *AppTestSuite) SetupSuite() {
 		"../test-fixtures/book_offer.sql",
 	}
 	if err := utils.RunFixturesOnDB(dbUrl, fixtures); err != nil {
-		suite.FailNow("failed to create test db")
+		suite.FailNow("failed to create test db", err)
 	}
 	suite.app = NewTestApp()
 }
@@ -99,4 +100,10 @@ func NewTestApp() *App {
 		store:  store,
 		gDrive: nil,
 	}
+}
+
+// Utils
+func date(str string) time.Time {
+	parse, _ := time.Parse(time.RFC3339, str)
+	return parse
 }

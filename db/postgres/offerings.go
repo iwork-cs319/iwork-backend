@@ -1,7 +1,9 @@
 package postgres
 
 import (
+	"errors"
 	"go-api/model"
+	"go-api/utils"
 	"log"
 	"time"
 )
@@ -105,7 +107,7 @@ func (p PostgresDBStore) GetExpandedOfferingsByUserID(id string) ([]*model.Expan
 func (p PostgresDBStore) GetOfferingsByDateRange(start time.Time, end time.Time) ([]*model.Offering, error) {
 	sqlStatement :=
 		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by FROM offerings 
-				WHERE start_time >= $1 AND end_time <= $2;`
+				WHERE start_time <= $1 AND end_time >= $2;`
 	return p.queryMultipleOfferings(sqlStatement, start, end)
 }
 
@@ -115,16 +117,70 @@ func (p PostgresDBStore) GetExpandedOfferingsByDateRange(start time.Time, end ti
          			 INNER JOIN users AS u ON o.user_id = u.id
          			 INNER JOIN workspaces AS w ON o.workspace_id = w.id
          			 INNER JOIN floors AS f ON w.floor_id = f.id
-					 WHERE start_time >= $1 AND end_time <= $2;
+					 WHERE start_time <= $1 AND end_time >= $2;
 					 `
 	return p.queryMultipleExpandedOfferings(sqlStatement, start, end)
 }
 
+func (p PostgresDBStore) GetOfferingsByWorkspaceIDAndDateRange(id string, start time.Time, end time.Time) (*model.Offering, error) {
+	sqlStatement :=
+		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by
+		 FROM offerings
+		 WHERE workspace_id=$1 AND start_time <= $2 AND end_time >= $3;`
+	var offering model.Offering
+	row := p.database.QueryRow(sqlStatement, id, start, end)
+	err := row.Scan(
+		&offering.ID,
+		&offering.UserID,
+		&offering.WorkspaceID,
+		&offering.StartDate,
+		&offering.EndDate,
+		&offering.Cancelled,
+		&offering.CreatedBy,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &offering, nil
+}
+
 func (p PostgresDBStore) CreateOffering(offering *model.Offering) (string, error) {
+	tx, err := p.database.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	// Check if its currently assigned
+	var count int
+	err = tx.QueryRow(
+		`SELECT count(*) FROM workspace_assignee 
+					WHERE workspace_id=$1 AND 
+                    	   (start_time <= $2 AND (end_time >= $3 OR end_time IS NULL))`,
+		offering.WorkspaceID, offering.StartDate, offering.EndDate,
+	).Scan(&count)
+	if err != nil || count == 0 {
+		return "", errors.New("invalid operation: unassigned workspace cannot be offered")
+	}
+
+	// Check for conflicts
+	err = tx.QueryRow(
+		`SELECT count(*) FROM offerings 
+					WHERE workspace_id=$1 AND cancelled=FALSE AND
+                    	   ((start_time <= $2 AND end_time >= $3) OR
+                    	    (start_time <= $2 AND end_time >= $2) OR 
+                    	    (start_time <= $3 AND end_time >= $3) OR
+                    	    (start_time >= $2 AND end_time <= $3))`,
+		offering.WorkspaceID, offering.StartDate, offering.EndDate,
+	).Scan(&count)
+	if err != nil || count > 0 {
+		return "", errors.New("invalid operation: workspace already offered for this duration")
+	}
+
 	sqlStatement :=
 		`INSERT INTO offerings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 	var id string
-	err := p.database.QueryRow(sqlStatement,
+	err = tx.QueryRow(sqlStatement,
 		offering.UserID,
 		offering.WorkspaceID,
 		offering.StartDate,
@@ -134,7 +190,7 @@ func (p PostgresDBStore) CreateOffering(offering *model.Offering) (string, error
 	if err != nil {
 		return "", err
 	}
-	return id, nil
+	return id, tx.Commit()
 }
 
 func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) error {
@@ -164,13 +220,39 @@ func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) err
 }
 
 func (p PostgresDBStore) RemoveOffering(id string) error {
+	tx, err := p.database.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var userId, workspaceId string
+	var start, end time.Time
+	err = tx.QueryRow(`SELECT user_id, workspace_id, start_time, end_time FROM offerings WHERE id=$1`,
+		id,
+	).Scan(&userId, &workspaceId, &start, &end)
+	if err != nil {
+		return err
+	}
+	if userId == utils.EmptyUserUUID { // check if offering is for a unassigned workspace
+		return errors.New("invalid operation: cannot remove offerings by default user")
+	}
+
+	// Check for any bookings in this offering period
+	var count int
+	err = tx.QueryRow(
+		`SELECT count(*) FROM bookings WHERE workspace_id=$1 AND cancelled=FALSE AND (start_time >= $2 AND end_time <= $3)`,
+		workspaceId, start, end,
+	).Scan(&count)
+	if count > 0 {
+		return errors.New("invalid operation: conflicting bookings for this offering period; cannot delete")
+	}
 	sqlStatement :=
 		`UPDATE offerings
 				SET cancelled = true
 				WHERE id = $1
 				RETURNING id;`
 	var _id string
-	err := p.database.QueryRow(sqlStatement,
+	err = tx.QueryRow(sqlStatement,
 		id,
 	).Scan(&_id)
 	if err != nil {
@@ -179,7 +261,7 @@ func (p PostgresDBStore) RemoveOffering(id string) error {
 	if _id != id {
 		return CreateError
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...interface{}) ([]*model.Offering, error) {
