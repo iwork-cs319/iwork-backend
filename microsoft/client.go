@@ -24,16 +24,33 @@ type ADClient struct {
 }
 
 func (c *ADClient) SendConfirmation(typeS string, params *mail.EmailParams) error {
+	loc, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		return err
+	}
 	inviteContent := fmt.Sprintf(
-		"Your %s for workspace %s on floor %s for the duration of %s to %s has now been confirmed. \n%s",
+		`Your %s for workspace <strong>%s</strong> on floor <strong>%s</strong>
+					for the duration of <strong>%s</strong> to <strong>%s</strong> has now been confirmed. 
+					<br>%s
+					`,
 		typeS, params.WorkspaceName,
 		params.FloorName,
-		params.Start.Format("Monday 02 Jan 06 15:04"),
-		params.End.Format("Monday 02 Jan 06 15:04"),
+		params.Start.In(loc).Format("Monday 02 Jan 06 15:04"),
+		params.End.In(loc).Format("Monday 02 Jan 06 15:04"),
 		mail.EmailBody,
 	)
+	if typeS == mail.Booking {
+		inviteContent = fmt.Sprintf(`%s<br> <a href="%s">Google Map Link</a>`,
+			inviteContent,
+			fmt.Sprintf(
+				"https://www.google.com/maps/search/?api=1&query=%s",
+				url.PathEscape(params.FloorAddress),
+			),
+		)
+	}
+
 	return c.sendCalendarInvite(&CalendarInvite{
-		subject:   fmt.Sprintf("Booking for %s at %s", params.WorkspaceName, params.FloorName),
+		subject:   fmt.Sprintf("%s for %s at %s", typeS, params.WorkspaceName, params.FloorName),
 		content:   inviteContent,
 		startTime: params.Start,
 		endTime:   params.End,
@@ -48,12 +65,16 @@ func (c *ADClient) SendConfirmation(typeS string, params *mail.EmailParams) erro
 }
 
 func (c *ADClient) SendCancellation(typeS string, params *mail.EmailParams) error {
+	loc, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		return err
+	}
 	cancellationContent := fmt.Sprintf(
-		"Your %s for workspace %s on floor %s for the duration of %s to %s has now been cancelled. \n%s",
+		"Your %s for workspace <strong>%s</strong> on floor <strong>%s</strong> for the duration of <strong>%s</strong> to <strong>%s</strong> has now been cancelled. \n%s",
 		typeS, params.WorkspaceName,
 		params.FloorName,
-		params.Start.Format("Monday 02 Jan 06 15:04"),
-		params.End.Format("Monday 02 Jan 06 15:04"),
+		params.Start.In(loc).Format("Monday 02 Jan 06 15:04"),
+		params.End.In(loc).Format("Monday 02 Jan 06 15:04"),
 		mail.EmailBody,
 	)
 	return c.sendEmail(&EmailBody{

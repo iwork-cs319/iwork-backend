@@ -9,6 +9,7 @@ type EmailParams struct {
 	Email         string
 	WorkspaceName string
 	FloorName     string
+	FloorAddress  string
 	Start         time.Time
 	End           time.Time
 }

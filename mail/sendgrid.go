@@ -17,7 +17,7 @@ const Booking = "booking"
 const Offering = "offering"
 const IWorkUserName = "IWork"
 const IWorkEmail = "cs319.icbc@outlook.com"
-const EmailBody = `You can view/manage your bookings and offerings under the manage tab at http://icbc-iwork-staging.herokuapp.com/`
+const EmailBody = `You can manage your bookings and offerings under the manage tab at <a href="http://icbc-iwork-staging.herokuapp.com/">http://icbc-iwork-staging.herokuapp.com/</a>`
 
 func (c *SendGridClient) SendConfirmation(typeS string, params *EmailParams) error {
 	from := mail.NewEmail(IWorkUserName, IWorkEmail)
