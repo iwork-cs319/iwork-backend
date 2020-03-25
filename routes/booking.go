@@ -325,5 +325,28 @@ func (app *App) RemoveBooking(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
+
+	// todo check for user and send to creator as well
+	eBooking, err1 := app.store.BookingProvider.GetOneExpandedBooking(bookingID)
+	if err1 != nil {
+		log.Printf("Erro getting booking %+v", err1)
+	}
+	user, err2 := app.store.UserProvider.GetOneUser(eBooking.UserID)
+	if err2 == nil {
+		_ = app.email.SendCancellation(
+			mail.Booking,
+			&mail.EmailParams{
+				Name:          user.Name,
+				Email:         user.Email,
+				WorkspaceName: eBooking.WorkspaceName,
+				FloorName:     eBooking.FloorName,
+				Start:         eBooking.StartDate,
+				End:           eBooking.EndDate,
+			},
+		)
+	} else {
+		log.Printf("Error getting user: %+v", err2)
+	}
 }
