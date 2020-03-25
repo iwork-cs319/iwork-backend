@@ -6,6 +6,8 @@ import (
 	"github.com/rs/cors"
 	"go-api/db"
 	"go-api/db/postgres"
+	"go-api/mail"
+	"go-api/microsoft"
 	"log"
 	"net/http"
 	"os"
@@ -17,15 +19,25 @@ type App struct {
 	store  *db.DataStore
 	gDrive db.Drive
 	cache  *redis.Pool
+	email  mail.EmailClient
 }
 
-func NewApp(dbUrl, gDriveConfig string) *App {
-	store, err := postgres.NewPostgresDataStore(dbUrl)
+type AppConfig struct {
+	DbUrl          string
+	GDriveConfig   string
+	MsClientId     string
+	MsScope        string
+	MsClientSecret string
+	AdminUserId    string
+}
+
+func NewApp(config *AppConfig) *App {
+	store, err := postgres.NewPostgresDataStore(config.DbUrl)
 	if err != nil {
 		log.Println("Failed to connect to database")
 		log.Fatal(err)
 	}
-	driveClient, err := db.NewDriveClient(gDriveConfig)
+	driveClient, err := db.NewDriveClient(config.GDriveConfig)
 	if err != nil {
 		log.Println("Failed to connect to google drive")
 		log.Fatal(err)
@@ -33,6 +45,16 @@ func NewApp(dbUrl, gDriveConfig string) *App {
 	redisUrl := os.Getenv("REDIS_URL")
 	if redisUrl == "" {
 		log.Println("Failed to connect to redis")
+		log.Fatal(err)
+	}
+	msClient, err := microsoft.NewADClient(
+		config.MsClientId,
+		config.MsScope,
+		config.MsClientSecret,
+		config.AdminUserId,
+	)
+	if err != nil {
+		log.Println("Failed to create AD Client")
 		log.Fatal(err)
 	}
 	redisCache := &redis.Pool{
@@ -46,6 +68,7 @@ func NewApp(dbUrl, gDriveConfig string) *App {
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
 		gDrive: driveClient,
+		email:  msClient,
 		cache:  redisCache,
 	}
 }

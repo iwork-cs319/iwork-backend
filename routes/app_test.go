@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go-api/db/postgres"
+	"go-api/mail"
 	"go-api/utils"
 	"io"
 	"log"
@@ -71,6 +72,20 @@ type mockDrive struct {
 func (m *mockDrive) UploadFloorPlan(name string, content io.Reader) (string, error) {
 	args := m.Called(name)
 	return args.String(0), args.Error(1)
+}
+
+type mockEmail struct {
+	mock.Mock
+}
+
+func (m *mockEmail) SendConfirmation(typeS string, params *mail.EmailParams) error {
+	args := m.Called(typeS)
+	return args.Error(0)
+}
+
+func (m *mockEmail) SendCancellation(typeS string, params *mail.EmailParams) error {
+	args := m.Called(typeS)
+	return args.Error(0)
 }
 
 func NewTestApp() *App {

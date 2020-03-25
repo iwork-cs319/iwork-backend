@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"go-api/mail"
 	"go-api/model"
 	"go-api/utils"
 	"io/ioutil"
@@ -56,6 +57,25 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	newBooking.ID = id
+
+	user, err1 := app.store.UserProvider.GetOneUser(newBooking.UserID)
+	// todo check for user and send to creator as well
+	eBooking, err2 := app.store.BookingProvider.GetOneExpandedBooking(id)
+	if err1 == nil && err2 == nil {
+		_ = app.email.SendConfirmation(
+			mail.Booking,
+			&mail.EmailParams{
+				Name:          user.Name,
+				Email:         user.Email,
+				WorkspaceName: eBooking.WorkspaceName,
+				FloorName:     eBooking.FloorName,
+				Start:         eBooking.StartDate,
+				End:           eBooking.EndDate,
+			},
+		)
+	} else {
+		log.Printf("Error getting user: %+v; Error getting booking %+v", err1, err2)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newBooking)

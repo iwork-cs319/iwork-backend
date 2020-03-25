@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"go-api/mail"
 	"go-api/model"
 	"go-api/utils"
 	"log"
@@ -317,6 +318,9 @@ func (suite *AppTestSuite) Test_CreateBooking() {
 		}
 	}
 	// [POST] Create booking
+	mockEmail := new(mockEmail)
+	mockEmail.On("SendConfirmation", mail.Booking).Return(nil)
+	suite.app.email = mockEmail
 	requestBody, _ := json.Marshal(map[string]interface{}{
 		"workspace_id": newBooking.WorkspaceID,
 		"user_id":      newBooking.UserID,

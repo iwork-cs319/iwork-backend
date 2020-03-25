@@ -10,6 +10,8 @@ require (
 	github.com/lib/pq v1.3.0
 	github.com/rs/cors v1.7.0
 	github.com/segmentio/ksuid v1.0.2
+	github.com/sendgrid/rest v2.4.1+incompatible // indirect
+	github.com/sendgrid/sendgrid-go v3.5.0+incompatible
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
 	google.golang.org/api v0.17.0
