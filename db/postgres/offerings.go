@@ -286,7 +286,9 @@ func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...int
 			// dont cause panic here, log it
 			log.Printf("PostgresDBStore.queryMultipleOfferings: %v, sqlStatement: %s\n", err, sqlStatement)
 		}
-		offerings = append(offerings, &offering)
+		if offering.UserID != utils.EmptyUserUUID {
+			offerings = append(offerings, &offering)
+		}
 	}
 	err = rows.Err()
 	if err != nil {
@@ -321,7 +323,9 @@ func (p PostgresDBStore) queryMultipleExpandedOfferings(sqlStatement string, arg
 			// dont cause panic here, log it
 			log.Printf("PostgresDBStore.queryMultipleBookings: %v, sqlStatement: %s\n", err, sqlStatement)
 		}
-		offerings = append(offerings, &eOffering)
+		if eOffering.UserID != utils.EmptyUserUUID {
+			offerings = append(offerings, &eOffering)
+		}
 	}
 	err = rows.Err()
 	if err != nil {

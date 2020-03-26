@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"go-api/model"
+	"go-api/utils"
 	"log"
 	"time"
 )
@@ -141,7 +142,9 @@ func (p PostgresDBStore) queryMultipleUsers(sqlStatement string, args ...interfa
 			// dont cause panic here, log it
 			log.Printf("PostgresDBStore.queryMultipleOfferings: %v, sqlStatement: %s\n", err, sqlStatement)
 		}
-		users = append(users, &user)
+		if user.ID != utils.EmptyUserUUID {
+			users = append(users, &user)
+		}
 	}
 	err = rows.Err()
 	if err != nil {
