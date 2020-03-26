@@ -327,4 +327,26 @@ func (app *App) RemoveOffering(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+
+	// todo check for user and send to creator as well
+	eOffering, err1 := app.store.OfferingProvider.GetOneExpandedOffering(offeringID)
+	if err1 != nil {
+		log.Printf("Erro getting booking %+v", err1)
+	}
+	user, err2 := app.store.UserProvider.GetOneUser(eOffering.UserID)
+	if err2 == nil {
+		_ = app.email.SendCancellation(
+			mail.Offering,
+			&mail.EmailParams{
+				Name:          user.Name,
+				Email:         user.Email,
+				WorkspaceName: eOffering.WorkspaceName,
+				FloorName:     eOffering.FloorName,
+				Start:         eOffering.StartDate,
+				End:           eOffering.EndDate,
+			},
+		)
+	} else {
+		log.Printf("Error getting user: %+v", err2)
+	}
 }

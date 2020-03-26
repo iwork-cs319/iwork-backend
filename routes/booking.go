@@ -61,20 +61,28 @@ func (app *App) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	user, err1 := app.store.UserProvider.GetOneUser(newBooking.UserID)
 	// todo check for user and send to creator as well
 	eBooking, err2 := app.store.BookingProvider.GetOneExpandedBooking(id)
-	if err1 == nil && err2 == nil {
-		_ = app.email.SendConfirmation(
+	floor, err3 := app.store.FloorProvider.GetOneFloor(eBooking.FloorID)
+	if err1 == nil && err2 == nil && err3 == nil {
+		err = app.email.SendConfirmation(
 			mail.Booking,
 			&mail.EmailParams{
 				Name:          user.Name,
 				Email:         user.Email,
 				WorkspaceName: eBooking.WorkspaceName,
 				FloorName:     eBooking.FloorName,
+				FloorAddress:  floor.Address,
 				Start:         eBooking.StartDate,
 				End:           eBooking.EndDate,
 			},
 		)
+		if err != nil {
+			log.Printf("Error sending email: %+v", err)
+		}
 	} else {
-		log.Printf("Error getting user: %+v; Error getting booking %+v", err1, err2)
+		log.Printf(
+			"Error getting user: %+v; Error getting booking %+v; Error getting floor %+v\n",
+			err1, err2, err3,
+		)
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -325,5 +333,28 @@ func (app *App) RemoveBooking(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
+
+	// todo check for user and send to creator as well
+	eBooking, err1 := app.store.BookingProvider.GetOneExpandedBooking(bookingID)
+	if err1 != nil {
+		log.Printf("Erro getting booking %+v", err1)
+	}
+	user, err2 := app.store.UserProvider.GetOneUser(eBooking.UserID)
+	if err2 == nil {
+		_ = app.email.SendCancellation(
+			mail.Booking,
+			&mail.EmailParams{
+				Name:          user.Name,
+				Email:         user.Email,
+				WorkspaceName: eBooking.WorkspaceName,
+				FloorName:     eBooking.FloorName,
+				Start:         eBooking.StartDate,
+				End:           eBooking.EndDate,
+			},
+		)
+	} else {
+		log.Printf("Error getting user: %+v", err2)
+	}
 }
