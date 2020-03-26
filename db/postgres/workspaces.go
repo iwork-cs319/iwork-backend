@@ -28,35 +28,34 @@ func (p PostgresDBStore) UpdateWorkspace(id string, workspace *model.Workspace) 
 	if err != nil {
 		return err
 	}
-	var workspaceId string
-	existsStmt := `SELECT id FROM workspaces WHERE name=$1 AND floor_id=$2`
-	err = tx.QueryRow(existsStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
-	if err != nil && err != sql.ErrNoRows {
+	var count int
+	existsStmt := `SELECT count(*) FROM workspaces WHERE name=$1 AND floor_id=$2 AND id <> $3`
+	err = tx.QueryRow(existsStmt, workspace.Name, workspace.Floor, id).Scan(&count)
+	if err != nil {
 		return err
 	}
-	if err == nil {
+	log.Println(count)
+	log.Println(workspace)
+	if count > 0 {
 		return errors.New("workspace name already exists")
 	}
-	if err == sql.ErrNoRows {
-		sqlStatement :=
-			`UPDATE workspaces
+	sqlStatement :=
+		`UPDATE workspaces
 				SET name = $2, floor_id = $3, details = $4
 				WHERE id = $1
 				RETURNING id, name, floor_id;`
-		var _id string
-		var name string
-		var floorId string
-		err := tx.QueryRow(sqlStatement, id, workspace.Name, workspace.Floor, workspace.Details).Scan(&_id, &name, &floorId)
-		if err != nil {
-			return err
-		}
-		if _id != id || name != workspace.Name || floorId != workspace.Floor {
-			return CreateError
-		}
-		workspace.ID = _id
+	var _id string
+	var name string
+	var floorId string
+	err = tx.QueryRow(sqlStatement, id, workspace.Name, workspace.Floor, workspace.Details).Scan(&_id, &name, &floorId)
+	if err != nil {
+		return err
 	}
-	err = tx.Commit()
-	return err
+	if _id != id || name != workspace.Name || floorId != workspace.Floor {
+		return CreateError
+	}
+	workspace.ID = _id
+	return tx.Commit()
 }
 
 func (p PostgresDBStore) UpdateWorkspaceMetadata(id string, properties *model.Attrs) error {

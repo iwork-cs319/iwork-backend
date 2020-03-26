@@ -124,7 +124,11 @@ func (app *App) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 	err = app.store.WorkspaceProvider.UpdateWorkspace(workspaceID, &updatedWorkspace)
 	if err != nil {
 		log.Printf("App.UpdateWorkspace - error updating workspace from provider %v", err)
-		w.WriteHeader(http.StatusNotFound)
+		if strings.Contains(err.Error(), "workspace name already exists") {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
 		return
 	}
 	w.WriteHeader(http.StatusOK)
