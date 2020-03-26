@@ -50,6 +50,16 @@ func (p PostgresDBStore) CreateUser(user *model.User) error {
 }
 
 func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAssignment, error) {
+	getOfferingsStmt := `SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by from offerings 
+							WHERE ((start_time <= $1 AND end_time >= $2) OR 
+									(start_time >= $1 AND end_time <= $2) OR 
+									(start_time <= $1 AND end_time >= $1) OR
+									(start_time <= $2 AND end_time >= $2))`
+	offerings, err := p.queryMultipleOfferings(getOfferingsStmt, start, end)
+	if err != nil {
+		return nil, err
+	}
+
 	sqlStatement := `SELECT users.id, name, email, department, is_admin, wa.workspace_id FROM users 
 							INNER JOIN workspace_assignee wa ON users.id = wa.user_id
 							WHERE wa.start_time <= $1 AND (wa.end_time >= $2 OR end_time IS NULL)`
@@ -58,7 +68,7 @@ func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAs
 		return nil, err
 	}
 	defer rows.Close()
-	users := make([]*model.UserAssignment, 0)
+	assignedUsers := make([]*model.UserAssignment, 0)
 	for rows.Next() {
 		var user model.UserAssignment
 		err := rows.Scan(
@@ -73,12 +83,27 @@ func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAs
 			// dont cause panic here, log it
 			log.Printf("PostgresDBStore.GetAssignedUsers: %v, sqlStatement: %s\n", err, sqlStatement)
 		}
-		users = append(users, &user)
+		assignedUsers = append(assignedUsers, &user)
 	}
 	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
+
+	users := make([]*model.UserAssignment, 0)
+	for _, u := range assignedUsers {
+		foundOfferingByUser := false
+		for _, o := range offerings {
+			if o.UserID == u.ID {
+				foundOfferingByUser = true
+				break
+			}
+		}
+		if !foundOfferingByUser {
+			users = append(users, u)
+		}
+	}
+
 	return users, nil
 }
 
