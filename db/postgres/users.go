@@ -107,6 +107,39 @@ func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAs
 	return users, nil
 }
 
+func (p PostgresDBStore) GetAssignedUsersByTime(timestamp time.Time) ([]*model.UserAssignment, error) {
+	sqlStatement := `SELECT users.id, name, email, department, is_admin, wa.workspace_id FROM users 
+							INNER JOIN workspace_assignee wa ON users.id = wa.user_id
+							WHERE wa.start_time <= $1 AND (wa.end_time >= $1 OR end_time IS NULL)`
+	rows, err := p.database.Query(sqlStatement, timestamp)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	assignedUsers := make([]*model.UserAssignment, 0)
+	for rows.Next() {
+		var user model.UserAssignment
+		err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&user.Department,
+			&user.IsAdmin,
+			&user.WorkspaceId,
+		)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.GetAssignedUsersByTime: %v, sqlStatement: %s\n", err, sqlStatement)
+		}
+		assignedUsers = append(assignedUsers, &user)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return assignedUsers, nil
+}
+
 //func (p PostgresDBStore) UpdateUser(id string, user *model.User) error {
 //	sqlStatement :=
 //		`UPDATE users
