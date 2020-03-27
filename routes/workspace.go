@@ -19,6 +19,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 		Queries("floor", "{floor}").
 		Queries("start", "{start:[0-9]+}").
 		Queries("end", "{end:[0-9]+}")
+	app.router.HandleFunc("/bulk/workspaces", app.BulkCreateWorkspaces).Methods("POST")
 	app.router.HandleFunc("/workspaces", app.CreateWorkspace).Methods("POST")
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
 	app.router.HandleFunc("/workspaces", app.GetAllWorkspacesByFloorId).Methods("GET").
