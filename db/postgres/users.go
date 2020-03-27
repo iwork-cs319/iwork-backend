@@ -51,7 +51,7 @@ func (p PostgresDBStore) CreateUser(user *model.User) error {
 
 func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAssignment, error) {
 	getOfferingsStmt := `SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by from offerings 
-							WHERE ((start_time <= $1 AND end_time >= $2) OR 
+							WHERE cancelled=FALSE AND ((start_time <= $1 AND end_time >= $2) OR 
 									(start_time >= $1 AND end_time <= $2) OR 
 									(start_time <= $1 AND end_time >= $1) OR
 									(start_time <= $2 AND end_time >= $2))`
