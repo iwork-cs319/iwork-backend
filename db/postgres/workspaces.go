@@ -96,7 +96,6 @@ func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) (string, er
 		workspace.Details,
 	).Scan(&workspaceId)
 	if err != nil {
-		log.Println("--9.1")
 		return "", err
 	}
 	err = tx.Commit()
