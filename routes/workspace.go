@@ -297,16 +297,18 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	log.Println(input)
 
 	createdWorkspaces := make([]*model.Workspace, 0)
 	for _, ws := range input.Workspaces {
+		log.Println(ws)
 		workspace := &model.Workspace{
 			Floor:   input.FloorId,
 			Name:    ws.WorkspaceName,
 			Props:   ws.Props,
 			Details: ws.Details,
 		}
-		workspaceID, err := app.store.WorkspaceProvider.CreateWorkspace(workspace)
+		workspaceID, err := app.store.WorkspaceProvider.UpsertWorkspace(workspace)
 		if err != nil {
 			log.Printf(
 				"App.BulkCreateWorkspaces - failed to update details for workspace %+v with floor %s - err: %+v\n",
