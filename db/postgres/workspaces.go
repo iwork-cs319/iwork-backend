@@ -84,8 +84,14 @@ func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) (string, er
 		return "", err
 	}
 	if err == sql.ErrNoRows {
-		createWorkspaceStmt := `INSERT INTO workspaces(name, floor_id) VALUES ($1, $2) RETURNING id`
-		err = p.database.QueryRow(createWorkspaceStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
+		createWorkspaceStmt := `INSERT INTO workspaces(name, floor_id, metadata, details) VALUES ($1, $2, $3, $5) RETURNING id`
+		err = p.database.QueryRow(
+			createWorkspaceStmt,
+			workspace.Name,
+			workspace.Floor,
+			workspace.Props,
+			workspace.Details,
+		).Scan(&workspaceId)
 		if err != nil {
 			return "", err
 		}
