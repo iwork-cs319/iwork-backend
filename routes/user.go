@@ -15,7 +15,7 @@ import (
 
 func (app *App) RegisterUserRoutes() {
 	app.router.HandleFunc("/users/assigned", app.GetAllAssignedUsers).Methods("GET").Queries("start", "{start:[0-9]+}").Queries("end", "{end:[0-9]+}")
-	app.router.HandleFunc("/users/assigned", app.GetAssignedUsersByTime).Methods("GET").Queries("timestamp", "{timestamp:[0-9]+}")
+	app.router.HandleFunc("/users/assigned", app.GetAssignedUsersByTime).Methods("GET").Queries("now", "{now:[0-9]+}")
 	app.router.HandleFunc("/users", app.CreateUsers).Methods("POST")
 	app.router.HandleFunc("/users/{id}", app.GetOneUser).Methods("GET")
 	//app.router.HandleFunc("/users/workspaces/{workspace_id}", app.GetUsersByWorkspaceID).Methods("GET")
@@ -142,8 +142,8 @@ func (app *App) GetAllAssignedUsers(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) GetAssignedUsersByTime(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	start := queryParams["timestamp"][0]
-	timestampTime, err := utils.TimeStampToTime(start) // Unix Timestamp
+	ts := queryParams["now"][0]
+	timestampTime, err := utils.TimeStampToTime(ts) // Unix Timestamp
 	if err != nil {
 		log.Printf("App.GetAssignedUsersAtTime - empty start time param: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
