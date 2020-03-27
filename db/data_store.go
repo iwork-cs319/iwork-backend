@@ -28,6 +28,7 @@ type workspaceProvider interface {
 	UpdateWorkspace(id string, workspace *model.Workspace) error
 	UpdateWorkspaceMetadata(id string, properties *model.Attrs) error
 	CreateWorkspace(workspace *model.Workspace) (string, error)
+	UpsertWorkspace(workspace *model.Workspace) (string, error)
 	RemoveWorkspace(id string) error
 	GetAllWorkspaces() ([]*model.Workspace, error)
 	GetAllWorkspacesByFloor(floorId string) ([]*model.Workspace, error)

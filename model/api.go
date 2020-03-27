@@ -8,3 +8,16 @@ type UserAssignment struct {
 	Email       string `json:"email"`
 	WorkspaceId string `json:"workspace_id"`
 }
+
+type CreateWorkspaceInput struct {
+	WorkspaceId   string `json:"id"`
+	WorkspaceName string `json:"name"`
+	Props         Attrs  `json:"properties"`
+	Details       string `json:"details"`
+	UserId        string `json:"user_id"`
+}
+
+type BulkCreateWorkspacesInput struct {
+	FloorId    string                  `json:"floor_id"`
+	Workspaces []*CreateWorkspaceInput `json:"workspaces"`
+}

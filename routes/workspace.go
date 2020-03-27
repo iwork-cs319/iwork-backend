@@ -19,6 +19,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 		Queries("floor", "{floor}").
 		Queries("start", "{start:[0-9]+}").
 		Queries("end", "{end:[0-9]+}")
+	app.router.HandleFunc("/bulk/workspaces", app.BulkCreateWorkspaces).Methods("POST")
 	app.router.HandleFunc("/workspaces", app.CreateWorkspace).Methods("POST")
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
 	app.router.HandleFunc("/workspaces", app.GetAllWorkspacesByFloorId).Methods("GET").
@@ -279,4 +280,47 @@ func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(workspaces)
+}
+
+func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
+	var input model.BulkCreateWorkspacesInput
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("App.BulkCreateWorkspaces - error reading request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(reqBody, &input)
+	if err != nil {
+		log.Printf("App.BulkCreateWorkspaces - error unmarshaling request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	log.Println(input)
+
+	createdWorkspaces := make([]*model.Workspace, 0)
+	for _, ws := range input.Workspaces {
+		log.Println(ws)
+		workspace := &model.Workspace{
+			Floor:   input.FloorId,
+			Name:    ws.WorkspaceName,
+			Props:   ws.Props,
+			Details: ws.Details,
+		}
+		workspaceID, err := app.store.WorkspaceProvider.UpsertWorkspace(workspace)
+		if err != nil {
+			log.Printf(
+				"App.BulkCreateWorkspaces - failed to update details for workspace %+v with floor %s - err: %+v\n",
+				ws, input.FloorId, err,
+			)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(createdWorkspaces)
+			return
+		}
+		workspace.ID = workspaceID
+		createdWorkspaces = append(createdWorkspaces, workspace)
+	}
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(createdWorkspaces)
 }
