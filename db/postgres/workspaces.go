@@ -86,19 +86,18 @@ func (p PostgresDBStore) CreateWorkspace(workspace *model.Workspace) (string, er
 	if count > 0 {
 		return "", errors.New(fmt.Sprintf("workspace name: %s already exists on floor: %s", workspace.Name, workspace.Floor))
 	}
-	if err == sql.ErrNoRows {
-		createWorkspaceStmt :=
-			`INSERT INTO workspaces(name, floor_id, metadata, details) VALUES ($1, $2, $3, $4) RETURNING id`
-		err = p.database.QueryRow(
-			createWorkspaceStmt,
-			workspace.Name,
-			workspace.Floor,
-			workspace.Props,
-			workspace.Details,
-		).Scan(&workspaceId)
-		if err != nil {
-			return "", err
-		}
+	createWorkspaceStmt :=
+		`INSERT INTO workspaces(name, floor_id, metadata, details) VALUES ($1, $2, $3, $4) RETURNING id`
+	err = tx.QueryRow(
+		createWorkspaceStmt,
+		workspace.Name,
+		workspace.Floor,
+		workspace.Props,
+		workspace.Details,
+	).Scan(&workspaceId)
+	if err != nil {
+		log.Println("--9.1")
+		return "", err
 	}
 	err = tx.Commit()
 	return workspaceId, err
