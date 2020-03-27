@@ -114,17 +114,19 @@ func (p PostgresDBStore) UpsertWorkspace(workspace *model.Workspace) (string, er
 	}
 
 	// Check if workspace exists
-	err = tx.QueryRow(
-		`SELECT id from workspaces where name=$1 AND floor_id=$2`,
-		workspace.Name,
-		workspace.Floor,
-	).Scan(&workspaceId)
-	if err != nil && err != sql.ErrNoRows {
-		// Error retrieving data
-		return "", nil
-	}
-	if workspaceId != "" {
-		workspace.ID = workspaceId
+	if workspace.ID == "" {
+		err = tx.QueryRow(
+			`SELECT id from workspaces where name=$1 AND floor_id=$2`,
+			workspace.Name,
+			workspace.Floor,
+		).Scan(&workspaceId)
+		if err != nil && err != sql.ErrNoRows {
+			// Error retrieving data
+			return "", nil
+		}
+		if workspaceId != "" {
+			workspace.ID = workspaceId
+		}
 	}
 
 	if workspace.ID != "" {
