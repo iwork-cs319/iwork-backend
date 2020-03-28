@@ -19,6 +19,10 @@ func (app *App) RegisterWorkspaceRoutes() {
 		Queries("floor", "{floor}").
 		Queries("start", "{start:[0-9]+}").
 		Queries("end", "{end:[0-9]+}")
+	app.router.HandleFunc("/workspaces/available", app.GetAllFloorsAvailability).
+		Methods("GET").
+		Queries("start", "{start:[0-9]+}").
+		Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/bulk/workspaces", app.BulkCreateWorkspaces).Methods("POST")
 	app.router.HandleFunc("/workspaces", app.CreateWorkspace).Methods("POST")
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
@@ -210,11 +214,46 @@ func (app *App) GetAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 	workspaceIds, err := app.store.WorkspaceProvider.FindAvailability(floorId, startTime, endTime)
 	if err != nil {
-		log.Printf("App.GetOfferingsByDateRange - error getting ids from provider %v", err)
+		log.Printf("App.FindAvailability - error getting ids from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(workspaceIds)
+}
+
+func (app *App) GetAllFloorsAvailability(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	start := queryParams["start"][0]
+	end := queryParams["end"][0]
+	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
+	endTime, errEnd := utils.TimeStampToTime(end)
+	if errStart != nil {
+		log.Printf("App.GetAvailability - empty start time param: %v", errStart)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if errEnd != nil {
+		log.Printf("App.GetAvailability - empty end time param: %v", errEnd)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	floorIDs, err := app.store.FloorProvider.GetAllFloorIDs()
+	if err != nil {
+		log.Printf("App.GetAllFloorsAvailability - error getting floor_id's from provider %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	allWorkspaceIDs := make([]string, 0)
+	for _, f := range floorIDs {
+		workspaceIDs, err := app.store.WorkspaceProvider.FindAvailability(f, startTime, endTime)
+		if err != nil {
+			log.Printf("App.GetAllFloorsAvailability - error getting ids from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		allWorkspaceIDs = append(allWorkspaceIDs, workspaceIDs...)
+	}
+	json.NewEncoder(w).Encode(allWorkspaceIDs)
 }
 
 func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {

@@ -66,6 +66,7 @@ type userProvider interface {
 type floorProvider interface {
 	GetOneFloor(id string) (*model.Floor, error)
 	GetAllFloors() ([]*model.Floor, error)
+	GetAllFloorIDs() ([]string, error)
 	CreateFloor(floor *model.Floor) (string, error)
 	//UpdateFloor(id string, user *model.Floor) error
 	//RemoveFloor(id string) error

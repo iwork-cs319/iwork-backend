@@ -26,6 +26,29 @@ func (p PostgresDBStore) GetAllFloors() ([]*model.Floor, error) {
 	return p.queryMultipleFloors(sqlStatement)
 }
 
+func (p PostgresDBStore) GetAllFloorIDs() ([]string, error) {
+	sqlStatement := `SELECT id FROM floors;`
+	rows, err := p.database.Query(sqlStatement)
+	if err != nil {
+		log.Printf("PostgresDBStore.GetAllFloorIDs: %v, sqlStatement: %s\n", err, sqlStatement)
+		return nil, err
+	}
+	defer rows.Close()
+	floorIDs := make([]string, 0)
+	for rows.Next() {
+		var id string
+		err := rows.Scan(
+			&id,
+		)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.GetAllFloorIDs: %v, sqlStatement: %s\n", err, sqlStatement)
+		}
+		floorIDs = append(floorIDs, id)
+	}
+	return floorIDs, nil
+}
+
 func (p PostgresDBStore) CreateFloor(floor *model.Floor) (string, error) {
 	sqlStatement :=
 		`INSERT INTO floors(name, download_url, address) VALUES ($1, $2, $3) RETURNING id`
