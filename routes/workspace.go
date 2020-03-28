@@ -237,13 +237,23 @@ func (app *App) GetAllFloorsAvailability(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	workspaceIds, err := app.store.WorkspaceProvider.FindAllFloorsAvailability(startTime, endTime)
+	floorIDs, err := app.store.FloorProvider.GetAllFloorIDs()
 	if err != nil {
-		log.Printf("App.GetAllFloorsAvailability - error getting ids from provider %v", err)
+		log.Printf("App.GetAllFloorsAvailability - error getting floor_id's from provider %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(workspaceIds)
+	allWorkspaceIDs := make([]string, 0)
+	for _, f := range floorIDs {
+		workspaceIDs, err := app.store.WorkspaceProvider.FindAvailability(f, startTime, endTime)
+		if err != nil {
+			log.Printf("App.GetAllFloorsAvailability - error getting ids from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		allWorkspaceIDs = append(allWorkspaceIDs, workspaceIDs...)
+	}
+	json.NewEncoder(w).Encode(allWorkspaceIDs)
 }
 
 func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
