@@ -380,6 +380,11 @@ func (suite *AppTestSuite) Test_PatchOffering() {
 
 func (suite *AppTestSuite) Test_ZDeleteOffering() { // Z to make it be performed last
 	t := suite.T()
+
+	mockEmail := new(mockEmail)
+	mockEmail.On("SendCancellation", mail.Offering).Return(nil)
+	suite.app.email = mockEmail
+
 	// Assume ID exists since we just created and patched it
 	existingID := newOffering.ID
 	rr := executeReq(t, &testRouteConfig{
