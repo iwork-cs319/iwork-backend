@@ -10,7 +10,8 @@ CREATE TABLE floors
     id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     name         TEXT NOT NULL,
     download_url TEXT NOT NULL,
-    address      TEXT NOT NULL
+    address      TEXT NOT NULL,
+    deleted      BOOLEAN          DEFAULT FALSE
 );
 
 CREATE TABLE users
@@ -19,7 +20,8 @@ CREATE TABLE users
     name       TEXT NOT NULL,
     department TEXT NOT NULL,
     email      TEXT             DEFAULT '',
-    is_admin   BOOLEAN
+    is_admin   BOOLEAN,
+    deleted    BOOLEAN          DEFAULT FALSE
 );
 
 insert into users(id, name, department, email, is_admin)
@@ -31,7 +33,8 @@ CREATE TABLE workspaces
     floor_id uuid REFERENCES floors (id) NOT NULL,
     name     TEXT                        NOT NULL,
     details  TEXT             DEFAULT '',
-    metadata JSON             DEFAULT '{}'::json
+    metadata JSON             DEFAULT '{}'::json,
+    deleted  BOOLEAN          DEFAULT FALSE
 );
 
 CREATE TABLE bookings

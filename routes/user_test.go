@@ -96,8 +96,7 @@ func (suite *AppTestSuite) TestGetAllUsers() {
 
 	var payload []*model.User
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)
-	assert.Equal(t, 5, len(payload), "incorrect response size")
-	assert.Contains(t, payload, UserDefault, "doesnt contain defaultUsers")
+	assert.Equal(t, 4, len(payload), "incorrect response size")
 	assert.Contains(t, payload, UserBarry, "doesnt contain barry")
 	assert.Contains(t, payload, UserDiana, "doesnt contain diana")
 	assert.Contains(t, payload, UserClark, "doesnt contain clark")
