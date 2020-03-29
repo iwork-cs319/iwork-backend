@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func (app *App) RegisterWorkspaceRoutes() {
@@ -336,11 +337,9 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Println(input)
 
 	createdWorkspaces := make([]*model.Workspace, 0)
 	for _, ws := range input.Workspaces {
-		log.Println(ws)
 		workspace := &model.Workspace{
 			Floor:   input.FloorId,
 			Name:    ws.WorkspaceName,
@@ -356,6 +355,38 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(createdWorkspaces)
 			return
+		}
+		if ws.WorkspaceId == "" && ws.UserId == "" {
+			// New workspace with no user
+			// Create a default offering
+			_, err = app.store.OfferingProvider.CreateDefaultOffering(&model.Offering{
+				UserID:      utils.EmptyUserUUID,
+				WorkspaceID: workspaceID,
+				StartDate:   time.Now(),
+				CreatedBy:   utils.EmptyUserUUID,
+			})
+			if err != nil {
+				log.Printf(
+					"App.BulkCreateWorkspaces - failed to create a default offering for workspace %+v with floor %s - err: %+v\n",
+					ws, input.FloorId, err,
+				)
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(createdWorkspaces)
+				return
+			}
+		} else if ws.WorkspaceId == "" && ws.UserId != "" {
+			// New workspace with user
+			// Create a assignment
+			err = app.store.WorkspaceProvider.CreateAssignment(ws.UserId, workspaceID)
+			if err != nil {
+				log.Printf(
+					"App.BulkCreateWorkspaces - failed to create an assignment for workspace %+v with floor %s - err: %+v\n",
+					ws, input.FloorId, err,
+				)
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(createdWorkspaces)
+				return
+			}
 		}
 		workspace.ID = workspaceID
 		createdWorkspaces = append(createdWorkspaces, workspace)
