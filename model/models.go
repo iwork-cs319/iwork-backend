@@ -27,6 +27,7 @@ type Workspace struct {
 	Floor   string `json:"floor_id"`
 	Props   Attrs  `json:"properties"`
 	Details string `json:"details"`
+	Deleted bool   `json:"deleted"`
 }
 
 func (this *Workspace) Equal(other *Workspace) bool {
@@ -63,6 +64,7 @@ type User struct {
 	Department string `json:"department"`
 	IsAdmin    bool   `json:"is_admin"`
 	Email      string `json:"email"`
+	Deleted    bool   `json:"deleted"`
 }
 
 func (this *User) Equal(other *User) bool {
@@ -76,6 +78,7 @@ type Floor struct {
 	Name        string `json:"name"`
 	DownloadURL string `json:"download_url"`
 	Address     string `json:"address"`
+	Deleted     bool   `json:"deleted"`
 }
 
 func (this *Floor) Equal(other *Floor) bool {
