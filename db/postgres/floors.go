@@ -23,12 +23,12 @@ func (p PostgresDBStore) GetOneFloor(id string) (*model.Floor, error) {
 }
 
 func (p PostgresDBStore) GetAllFloors() ([]*model.Floor, error) {
-	sqlStatement := `SELECT id, name, download_url, address FROM floors;`
+	sqlStatement := `SELECT id, name, download_url, address FROM floors WHERE deleted=FALSE;`
 	return p.queryMultipleFloors(sqlStatement)
 }
 
 func (p PostgresDBStore) GetAllFloorIDs() ([]string, error) {
-	sqlStatement := `SELECT id FROM floors;`
+	sqlStatement := `SELECT id FROM floors WHERE deleted=FALSE;`
 	rows, err := p.database.Query(sqlStatement)
 	if err != nil {
 		log.Printf("PostgresDBStore.GetAllFloorIDs: %v, sqlStatement: %s\n", err, sqlStatement)

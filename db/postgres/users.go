@@ -25,7 +25,7 @@ func (p PostgresDBStore) GetOneUser(id string) (*model.User, error) {
 }
 
 func (p PostgresDBStore) GetAllUsers() ([]*model.User, error) {
-	sqlStatement := `SELECT id, name, email, department, is_admin FROM users;`
+	sqlStatement := `SELECT id, name, email, department, is_admin FROM users WHERE deleted=FALSE;`
 	return p.queryMultipleUsers(sqlStatement)
 }
 
@@ -62,7 +62,7 @@ func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAs
 
 	sqlStatement := `SELECT users.id, name, email, department, is_admin, wa.workspace_id FROM users 
 							INNER JOIN workspace_assignee wa ON users.id = wa.user_id
-							WHERE wa.start_time <= $1 AND (wa.end_time >= $2 OR end_time IS NULL)`
+							WHERE users.deleted=FALSE AND wa.start_time <= $1 AND (wa.end_time >= $2 OR end_time IS NULL)`
 	rows, err := p.database.Query(sqlStatement, start, end)
 	if err != nil {
 		return nil, err

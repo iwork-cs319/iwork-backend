@@ -156,7 +156,7 @@ func (p PostgresDBStore) RemoveWorkspace(id string) error {
 }
 
 func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
-	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces;`)
+	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE deleted=FALSE;`)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
 }
 
 func (p PostgresDBStore) GetAllWorkspacesByFloor(floorId string) ([]*model.Workspace, error) {
-	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE floor_id=$1;`, floorId)
+	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE floor_id=$1 AND deleted=FALSE;`, floorId)
 	if err != nil {
 		return nil, err
 	}
