@@ -221,6 +221,19 @@ func (p PostgresDBStore) RemoveBooking(id string) error {
 	return nil
 }
 
+func (p PostgresDBStore) GetExpiredBookings() ([]*model.Booking, error) {
+	sqlStatement :=
+		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by FROM bookings 
+				WHERE end_time < $1`
+	return p.queryMultipleBookings(sqlStatement, time.Now())
+}
+
+func (p PostgresDBStore) DeleteBookings(ids []string) error {
+	sqlStatement := `DELETE FROM bookings WHERE id IN ($1);`
+	_, err := p.database.Exec(sqlStatement, ids)
+	return err
+}
+
 func (p PostgresDBStore) queryMultipleBookings(sqlStatement string, args ...interface{}) ([]*model.Booking, error) {
 	rows, err := p.database.Query(sqlStatement, args...)
 	if err != nil {

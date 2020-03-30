@@ -12,6 +12,7 @@ import (
 
 type Drive interface {
 	UploadFloorPlan(name string, content io.Reader) (string, error)
+	UploadArchiveDataFile(name string, content io.Reader) error
 	ListAllFiles() ([]*drive.File, error)
 }
 
@@ -21,6 +22,7 @@ type GDrive struct {
 
 const (
 	FloorPlanFolderName = "floor-plans"
+	ArchiveFolderName   = "archive"
 	RootFolderName      = "root"
 )
 
@@ -135,4 +137,18 @@ func (d GDrive) ListAllFiles() ([]*drive.File, error) {
 	//log.Printf("-- %+v", f)
 	//}
 	return list.Files, nil
+}
+
+func (d GDrive) UploadArchiveDataFile(name string, content io.Reader) error {
+	dir, err := d.createDir(ArchiveFolderName, RootFolderName)
+	if err != nil {
+		log.Println("Failed to create folder: " + err.Error())
+		return err
+	}
+	_, err = d.createFile(name, "text/plain", content, dir.Id)
+	if err != nil {
+		log.Printf("Could not create file: %v\n", err)
+		return err
+	}
+	return nil
 }

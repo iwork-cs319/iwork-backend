@@ -52,6 +52,7 @@ type bookingProvider interface {
 	CreateBooking(booking *model.Booking) (string, error)
 	UpdateBooking(id string, booking *model.Booking) error
 	RemoveBooking(id string) error
+	GetExpiredBookings() ([]*model.Booking, error)
 }
 
 type userProvider interface {
