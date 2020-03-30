@@ -33,6 +33,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 	app.router.HandleFunc("/workspaces/{id}", app.UpdateWorkspace).Methods("PATCH")
 	//app.router.HandleFunc("/workspaces/{id}", app.DeleteWorkspace).Methods("DELETE")
 	app.router.HandleFunc("/assignments", app.CreateAssignments).Methods("POST")
+	app.router.HandleFunc("/workspaces/store/available", app.GetAvailabilityYesterday).Methods("GET")
 }
 
 func (app *App) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -254,6 +255,51 @@ func (app *App) GetAllFloorsAvailability(w http.ResponseWriter, r *http.Request)
 		allWorkspaceIDs = append(allWorkspaceIDs, workspaceIDs...)
 	}
 	json.NewEncoder(w).Encode(allWorkspaceIDs)
+}
+
+type WorkspaceStat struct {
+	CountAvailable       int       `json:"count_available"`
+	CountFloor       int       `json:"count_floor"`
+	WorkspaceIDs  []string  `json:"workspace_ids"`
+}
+
+func (app *App) GetAvailabilityYesterday(w http.ResponseWriter, r *http.Request) {
+	// Gets called the day after to store the availabilities of the previous day.
+	yesterday, yesterdayEnd, err := utils.TimeYesterday()
+	if err != nil {
+		log.Printf("App.GetAvailabilityYesterday - error getting time %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// Find all availabilities for the previous day
+	floorIDs, err := app.store.FloorProvider.GetAllFloorIDs()
+	if err != nil {
+		log.Printf("App.GetAvailabilityYesterday - error getting floor_id's from provider %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	workspacesDict := make(map[string] WorkspaceStat)
+	for _, f := range floorIDs {
+		workspaceIDs, err := app.store.WorkspaceProvider.FindAvailability(f, yesterday, yesterdayEnd)
+		if err != nil {
+			log.Printf("App.GetAvailabilityYesterday - error getting ids from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		count := len(workspaceIDs)
+		countWorkspacesOnFloor, err := app.store.WorkspaceProvider.CountWorkspacesByFloor(f)
+		// Create a map[string]WorkspaceStat for floorid -> ...
+		floorStat := WorkspaceStat{
+			CountAvailable: count,
+			CountFloor: countWorkspacesOnFloor,
+			WorkspaceIDs: workspaceIDs,
+		}
+		workspacesDict[f] = floorStat
+		//allWorkspaceIDs = append(allWorkspaceIDs, workspaceIDs...)
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(workspacesDict)
+	return
 }
 
 func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
