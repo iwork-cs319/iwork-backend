@@ -10,6 +10,8 @@ import (
 
 type Drive interface {
 	UploadFloorPlan(name string, content io.Reader) (string, error)
+	UploadArchiveDataFile(name string, content io.Reader) error
+	ListAllFiles() error
 }
 
 type GDrive struct {
@@ -18,6 +20,7 @@ type GDrive struct {
 
 const (
 	FloorPlanFolderName = "floor-plans"
+	ArchiveFolderName   = "archive"
 	RootFolderName      = "root"
 )
 
@@ -99,4 +102,43 @@ func (d GDrive) UploadFloorPlan(name string, content io.Reader) (string, error) 
 		return "", err
 	}
 	return file.Id, nil
+}
+
+func (d GDrive) UploadArchiveDataFile(name string, content io.Reader) error {
+	dir, err := d.createDir(ArchiveFolderName, RootFolderName)
+	if err != nil {
+		log.Println("Failed to create folder: " + err.Error())
+		return err
+	}
+	_, err = d.createFile(name, "text/plain", content, dir.Id)
+	if err != nil {
+		log.Printf("Could not create file: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (d GDrive) getDirectory(name string) (*drive.File, error) {
+	list, err := d.srv.Files.List().OrderBy("name").Do()
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range list.Files {
+		if f.Name == name && f.MimeType == "application/vnd.google-apps.folder" {
+			return f, nil
+		}
+	}
+	return nil, nil
+}
+
+func (d GDrive) ListAllFiles() error {
+	list, err := d.srv.Files.List().OrderBy("name").Do()
+	if err != nil {
+		return err
+	}
+	for _, f := range list.Files {
+		log.Printf("======= Name: %s, Id: %s, Parent: %s, Mime: %s", f.Name, f.Id, f.Parents, f.MimeType)
+		//log.Printf("-- %+v", f)
+	}
+	return nil
 }
