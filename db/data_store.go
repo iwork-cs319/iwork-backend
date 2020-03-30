@@ -85,6 +85,7 @@ type offeringProvider interface {
 	GetExpandedOfferingsByDateRange(start time.Time, end time.Time) ([]*model.ExpandedOffering, error)
 	GetOfferingsByWorkspaceIDAndDateRange(id string, start time.Time, end time.Time) (*model.Offering, error)
 	CreateOffering(booking *model.Offering) (string, error)
+	CreateDefaultOffering(booking *model.Offering) (string, error)
 	UpdateOffering(id string, booking *model.Offering) error
 	RemoveOffering(id string) error
 }
