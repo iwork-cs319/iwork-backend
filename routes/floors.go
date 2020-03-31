@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"go-api/model"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func buildDriveDirectLink(id string) string {
@@ -142,20 +144,34 @@ func (app *App) GetAllFloors(w http.ResponseWriter, r *http.Request) {
 //	}
 //}
 
-//func (app *App) DeleteFloor(w http.ResponseWriter, r *http.Request) {
-//	floorID := mux.Vars(r)["id"]
-//
-//	if floorID == "" {
-//		log.Printf("App.DeleteFloor - empty floor id")
-//		w.WriteHeader(http.StatusBadRequest)
-//		return
-//	}
-//
-//	err := app.store.FloorProvider.RemoveFloor(floorID)
-//	if err != nil {
-//		log.Printf("App.DeleteFloor - error getting all floors from provider %v", err)
-//		w.WriteHeader(http.StatusNotFound)
-//		return
-//	}
-//	w.WriteHeader(http.StatusOK)
-//}
+func (app *App) DeleteFloor(w http.ResponseWriter, r *http.Request) {
+	floorID := mux.Vars(r)["id"]
+
+	if floorID == "" {
+		log.Printf("App.DeleteFloor - empty floor id")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var deleteFloor model.DeleteFloor
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("App.DeleteFloor - error reading request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(reqBody, &deleteFloor)
+
+	err = app.store.FloorProvider.RemoveFloor(floorID, deleteFloor.ForceDelete)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid operation") {
+			log.Printf("App.DeleteFloor - %v", err)
+			w.WriteHeader(http.StatusForbidden)
+		} else {
+			log.Printf("App.DeleteFloor - error getting all floors from provider %v", err)
+			w.WriteHeader(http.StatusNotFound)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}

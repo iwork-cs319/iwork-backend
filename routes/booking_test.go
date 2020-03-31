@@ -388,6 +388,11 @@ func (suite *AppTestSuite) Test_PatchBooking() {
 
 func (suite *AppTestSuite) Test_ZDeleteBooking() {
 	t := suite.T()
+
+	mockEmail := new(mockEmail)
+	mockEmail.On("SendCancellation", mail.Booking).Return(nil)
+	suite.app.email = mockEmail
+
 	// Assume ID exists since we just created and patched it
 	existingID := newBooking.ID
 	rr2 := executeReq(t, &testRouteConfig{

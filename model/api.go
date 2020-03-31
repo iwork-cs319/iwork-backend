@@ -21,3 +21,7 @@ type BulkCreateWorkspacesInput struct {
 	FloorId    string                  `json:"floor_id"`
 	Workspaces []*CreateWorkspaceInput `json:"workspaces"`
 }
+
+type DeleteFloor struct {
+	ForceDelete bool `json:"force_delete"`
+}

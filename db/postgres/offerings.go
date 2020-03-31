@@ -193,6 +193,56 @@ func (p PostgresDBStore) CreateOffering(offering *model.Offering) (string, error
 	return id, tx.Commit()
 }
 
+func (p PostgresDBStore) CreateDefaultOffering(offering *model.Offering) (string, error) {
+	tx, err := p.database.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	var count int
+	err = tx.QueryRow(
+		`SELECT count(*) FROM bookings 
+						WHERE workspace_id=$1 AND end_time >= $2`,
+		offering.WorkspaceID, offering.StartDate,
+	).Scan(&count)
+	if count > 0 {
+		return "", errors.New("invalid operation: workspace has outstanding bookings")
+	}
+
+	// End the assignments
+	updateAssignmentsStmt := `UPDATE workspace_assignee SET end_time=$2 WHERE workspace_id=$1 AND end_time IS NULL RETURNING id`
+	_, err = tx.Exec(updateAssignmentsStmt, offering.WorkspaceID, offering.StartDate)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateDefaultOffering: error updating older assignment: %v\n", err)
+		return "", err
+	}
+	// End any default offerings
+	updateDefaultOfferingsStmt := `UPDATE offerings SET end_time=$2 WHERE workspace_id=$1 AND end_time IS NULL RETURNING id`
+	_, err = tx.Exec(updateDefaultOfferingsStmt, offering.WorkspaceID, offering.StartDate)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateDefaultOffering: error updating default future offerings: %v\n", err)
+		return "", err
+	}
+	// update any non-default offerings (cancel them)
+	updateOfferingsStmt := `UPDATE offerings SET cancelled=TRUE WHERE workspace_id=$1 AND end_time >= $2 RETURNING id`
+	_, err = tx.Exec(updateOfferingsStmt, offering.WorkspaceID, offering.StartDate)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateDefaultOffering: error updating future offerings: %v\n", err)
+		return "", err
+	}
+
+	sqlStatement :=
+		`INSERT INTO offerings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	var id string
+	err = tx.QueryRow(sqlStatement, utils.EmptyUserUUID, offering.WorkspaceID, offering.StartDate, nil, utils.EmptyUserUUID).Scan(&id)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateDefaultOffering: error creating new default offerings: %v\n", err)
+		return "", err
+	}
+	return id, tx.Commit()
+}
+
 func (p PostgresDBStore) UpdateOffering(id string, offering *model.Offering) error {
 	sqlStatement :=
 		`UPDATE offerings
