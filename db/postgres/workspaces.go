@@ -201,6 +201,17 @@ func (p PostgresDBStore) GetAllWorkspacesByFloor(floorId string) ([]*model.Works
 	return workspaces, nil
 }
 
+func (p PostgresDBStore) CountWorkspacesByFloor(floorId string) (int, error) {
+	sqlStatement := `SELECT COUNT(*) FROM workspaces WHERE floor_id=$1;`
+	var numWorkspacesFloor int
+	row := p.database.QueryRow(sqlStatement, floorId)
+	err := row.Scan(&numWorkspacesFloor)
+	if err != nil {
+		return 0, err
+	}
+	return numWorkspacesFloor, nil
+}
+
 func (p PostgresDBStore) CreateAssignment(userId, workspaceId string) error {
 	tx, err := p.database.Begin()
 	if err != nil {
