@@ -288,6 +288,11 @@ func (app *App) GetBulkCountAvailability(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if endTime.Before(startTime) {
+		log.Printf("App.GetBulkAvailability - end time before start time: %v", errStart)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	loc, err := time.LoadLocation("America/Vancouver")
 	if err != nil {
 		log.Printf("App.GetBulkAvailability - location failed with: %v", err)
@@ -298,6 +303,7 @@ func (app *App) GetBulkCountAvailability(w http.ResponseWriter, r *http.Request)
 	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
 	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, loc)
 	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, loc)
+	finalEnd = finalEnd.Add(time.Hour*24) // Add one day so it also gets results for the final day
 	// Ensure end time is end of it's day
 	// For loop for each day, collecting the information into a dict
 	allDaysDict := make(map[string]map[string]WorkspaceCount)
@@ -332,10 +338,16 @@ func (app *App) GetBulkAvailability(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if endTime.Before(startTime) {
+		log.Printf("App.GetBulkAvailability - end time before start time: %v", errStart)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	// Truncate start time to beginning of the day
 	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, startTime.Location())  // TODO: Check location
 	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, startTime.Location()) // TODO: Check location
 	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, startTime.Location())   // TODO: Check location
+	finalEnd = finalEnd.Add(time.Hour*24) // Add one day so it also gets results for the final day
 	// Ensure end time is end of it's day
 	// For loop for each day, collecting the information into a dict
 	allDaysDict := make(map[string]map[string]WorkspaceStat)
