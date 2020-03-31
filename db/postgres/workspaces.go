@@ -156,7 +156,7 @@ func (p PostgresDBStore) RemoveWorkspace(id string) error {
 }
 
 func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
-	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces;`)
+	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE deleted=FALSE;`)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (p PostgresDBStore) GetAllWorkspaces() ([]*model.Workspace, error) {
 }
 
 func (p PostgresDBStore) GetAllWorkspacesByFloor(floorId string) ([]*model.Workspace, error) {
-	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE floor_id=$1;`, floorId)
+	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE floor_id=$1 AND deleted=FALSE;`, floorId)
 	if err != nil {
 		return nil, err
 	}
@@ -213,28 +213,58 @@ func (p PostgresDBStore) CountWorkspacesByFloor(floorId string) (int, error) {
 }
 
 func (p PostgresDBStore) CreateAssignment(userId, workspaceId string) error {
-	rows, err := p.database.Query(`SELECT id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NOT NULL`, workspaceId)
+	tx, err := p.database.Begin()
 	if err != nil {
-		log.Printf("PostgresDBStore.CreateAssignment: error fetching older assignment: %v\n", err)
+		return err
 	}
-	defer rows.Close()
-	notEmpty := rows.Next()
+	defer tx.Rollback()
+
+	now := time.Now()
+	log.Printf("Postgres.CreateAssignment: time.Now()=%s", now.UTC().String())
+
+	// Check for future bookings
+	var count int
+	err = tx.QueryRow(
+		`SELECT count(*) FROM bookings 
+						WHERE workspace_id=$1 AND end_time >= $2`,
+		workspaceId, now,
+	).Scan(&count)
+	if count > 0 {
+		return errors.New("invalid operation: workspace has outstanding bookings")
+	}
+
+	// End the assignments
+	updateAssignmentsStmt := `UPDATE workspace_assignee SET end_time=$2 WHERE workspace_id=$1 AND end_time IS NULL RETURNING id`
+	_, err = tx.Exec(updateAssignmentsStmt, workspaceId, now)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateAssignment: error updating older assignment: %v\n", err)
+		return err
+	}
+
+	// End any default offerings
+	updateDefaultOfferingsStmt := `UPDATE offerings SET end_time=$2 WHERE workspace_id=$1 AND end_time IS NULL RETURNING id`
+	_, err = tx.Exec(updateDefaultOfferingsStmt, workspaceId, now)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateAssignment: error updating default future offerings: %v\n", err)
+		return err
+	}
+
+	// update any non-default offerings (cancel them)
+	updateOfferingsStmt := `UPDATE offerings SET cancelled=TRUE WHERE workspace_id=$1 AND end_time >= $2 RETURNING id`
+	_, err = tx.Exec(updateOfferingsStmt, workspaceId, now)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateDefaultOffering: error updating future offerings: %v\n", err)
+		return err
+	}
+
 	var id string
-	if !notEmpty {
-		err = rows.Scan(&id)
-	}
-	if id != "" {
-		updateStmt :=
-			`UPDATE workspace_assignee 
-				SET end_time=$2 WHERE id=$1`
-		err = p.database.QueryRow(updateStmt, id, time.Now()).Scan(&id)
-		if err != nil {
-			log.Printf("PostgresDBStore.CreateAssignment: error updating older assignment: %v\n", err)
-		}
-	}
 	sqlStatement := `INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
-	err = p.database.QueryRow(sqlStatement, userId, workspaceId, time.Now()).Scan(&id)
-	return err
+	err = tx.QueryRow(sqlStatement, userId, workspaceId, time.Now()).Scan(&id)
+	if err != nil {
+		log.Printf("PostgresDBStore.CreateDefaultOffering: error creating new assignment: %v\n", err)
+		return err
+	}
+	return tx.Commit()
 }
 
 func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userId string) (string, error) {

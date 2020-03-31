@@ -9,13 +9,17 @@ func (p PostgresDBStore) FindAvailability(floorId string, start time.Time, end t
 	// $1 = floor-id
 	// $2 = start
 	// $3 = end
-
+	tx, err := p.database.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 	sqlStmtBookings := `SELECT b.workspace_id from bookings b INNER JOIN workspaces w ON w.id=b.workspace_id
-			WHERE w.floor_id=$1 AND b.cancelled=false AND
+			WHERE w.floor_id=$1 AND b.cancelled=false AND w.deleted=FALSE AND
 			( (b.start_time <= $2 AND b.end_time >= $2) 
 				OR (b.start_time >= $2 AND b.end_time <= $3) 
 				OR (b.end_time >= $3 AND b.start_time <= $3) );`
-	rows, err := p.database.Query(sqlStmtBookings, floorId, start, end)
+	rows, err := tx.Query(sqlStmtBookings, floorId, start, end)
 	if err != nil {
 		log.Printf("PostgresDBStore.FindAvailability.getBookings: %v, sqlStatement: %s\n", err, sqlStmtBookings)
 		return nil, err
@@ -35,9 +39,9 @@ func (p PostgresDBStore) FindAvailability(floorId string, start time.Time, end t
 	}
 
 	sqlStmtOfferings := `SELECT o.workspace_id from offerings o INNER JOIN workspaces w ON w.id=o.workspace_id
-			WHERE w.floor_id=$1 AND o.cancelled=false AND
+			WHERE w.floor_id=$1 AND o.cancelled=false AND w.deleted=FALSE AND
 			( (o.start_time <= $2 AND o.end_time >= $3) );`
-	rows, err = p.database.Query(sqlStmtOfferings, floorId, start, end)
+	rows, err = tx.Query(sqlStmtOfferings, floorId, start, end)
 	if err != nil {
 		log.Printf("PostgresDBStore.FindAvailability.getOfferings: %v, sqlStatement: %s\n", err, sqlStmtOfferings)
 		return nil, err
@@ -57,13 +61,13 @@ func (p PostgresDBStore) FindAvailability(floorId string, start time.Time, end t
 	}
 
 	sqlStmtAssigned := `SELECT wa.workspace_id from workspace_assignee wa INNER JOIN workspaces w ON w.id=wa.workspace_id
-			WHERE w.floor_id=$1 AND
+			WHERE w.floor_id=$1 AND w.deleted=FALSE AND
 			( (wa.start_time <= $2 AND wa.end_time >= $2) 
 				OR (wa.start_time >= $2 AND wa.end_time <= $3) 
 				OR (wa.end_time >= $3 AND wa.start_time <= $3)
 			    OR (wa.end_time IS NULL AND wa.start_time < $2)
 			    OR (wa.end_time IS NULL AND wa.start_time > $2 AND wa.start_time < $3));`
-	rows, err = p.database.Query(sqlStmtAssigned, floorId, start, end)
+	rows, err = tx.Query(sqlStmtAssigned, floorId, start, end)
 	if err != nil {
 		log.Printf("PostgresDBStore.FindAvailability.getAssignee: %v, sqlStatement: %s\n", err, sqlStmtAssigned)
 		return nil, err
@@ -83,7 +87,7 @@ func (p PostgresDBStore) FindAvailability(floorId string, start time.Time, end t
 	}
 
 	sqlStmtAll := `SELECT id from workspaces where floor_id=$1;`
-	rows, err = p.database.Query(sqlStmtAll, floorId)
+	rows, err = tx.Query(sqlStmtAll, floorId)
 	if err != nil {
 		log.Printf("PostgresDBStore.FindAvailability: %v, sqlStatement: %s\n", err, sqlStmtAll)
 		return nil, err
@@ -109,5 +113,5 @@ func (p PostgresDBStore) FindAvailability(floorId string, start time.Time, end t
 		}
 	}
 
-	return availableWorkspaces, nil
+	return availableWorkspaces, tx.Commit()
 }
