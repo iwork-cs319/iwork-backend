@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func (app *App) RegisterWorkspaceRoutes() {
@@ -20,6 +21,14 @@ func (app *App) RegisterWorkspaceRoutes() {
 		Queries("start", "{start:[0-9]+}").
 		Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/workspaces/available", app.GetAllFloorsAvailability).
+		Methods("GET").
+		Queries("start", "{start:[0-9]+}").
+		Queries("end", "{end:[0-9]+}")
+	app.router.HandleFunc("/workspaces/bulk/available", app.GetBulkAvailability).
+		Methods("GET").
+		Queries("start", "{start:[0-9]+}").
+		Queries("end", "{end:[0-9]+}")
+	app.router.HandleFunc("/workspaces/bulk/countavailable", app.GetBulkCountAvailability).
 		Methods("GET").
 		Queries("start", "{start:[0-9]+}").
 		Queries("end", "{end:[0-9]+}")
@@ -257,10 +266,96 @@ func (app *App) GetAllFloorsAvailability(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(allWorkspaceIDs)
 }
 
+//type DateWorkspaceStat struct {
+//	DayWorkspaceStat  map[string]WorkspaceStat `json:"workspace_stat"`
+//	CountDayAvailable int                      `json:"countd_available"`
+//	CountDayTotal     int                      `json:"countd_total"`
+//}
+
+func (app *App) GetBulkCountAvailability(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	start := queryParams["start"][0]
+	end := queryParams["end"][0]
+	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
+	endTime, errEnd := utils.TimeStampToTime(end)
+	if errStart != nil {
+		log.Printf("App.GetBulkAvailability - empty start time param: %v", errStart)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if errEnd != nil {
+		log.Printf("App.GetBulkAvailability - empty end time param: %v", errEnd)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// Truncate start time to beginning of the day
+	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, startTime.Location())  // TODO: Check location
+	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, startTime.Location()) // TODO: Check location
+	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, startTime.Location())   // TODO: Check location
+	// Ensure end time is end of it's day
+	// For loop for each day, collecting the information into a dict
+	allDaysDict := make(map[string]map[string]WorkspaceCount)
+	for s, e := startT, endT; s.Day() != finalEnd.Day(); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
+		workspacesDict, err := app.getBulkCountAvailabilities(s, e)
+		if err != nil {
+			log.Printf("App.GetAvailabilityYesterday - error getting BulkAvailabilities %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		// Create dict id with d
+		allDaysDict[s.Format("02.01.2006")] = workspacesDict
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(allDaysDict)
+	return
+}
+
+func (app *App) GetBulkAvailability(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	start := queryParams["start"][0]
+	end := queryParams["end"][0]
+	startTime, errStart := utils.TimeStampToTime(start) // Unix Timestamp
+	endTime, errEnd := utils.TimeStampToTime(end)
+	if errStart != nil {
+		log.Printf("App.GetBulkAvailability - empty start time param: %v", errStart)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if errEnd != nil {
+		log.Printf("App.GetBulkAvailability - empty end time param: %v", errEnd)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// Truncate start time to beginning of the day
+	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, startTime.Location())  // TODO: Check location
+	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, startTime.Location()) // TODO: Check location
+	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, startTime.Location())   // TODO: Check location
+	// Ensure end time is end of it's day
+	// For loop for each day, collecting the information into a dict
+	allDaysDict := make(map[string]map[string]WorkspaceStat)
+	for s, e := startT, endT; s.Day() != finalEnd.Day(); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
+		workspacesDict, err := app.getBulkAvailabilities(s, e)
+		if err != nil {
+			log.Printf("App.GetAvailabilityYesterday - error getting BulkAvailabilities %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		// Create dict id with d
+		allDaysDict[s.Format("02.01.2006")] = workspacesDict
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(allDaysDict)
+	return
+}
+
 type WorkspaceStat struct {
-	CountAvailable       int       `json:"count_available"`
-	CountFloor       int       `json:"count_floor"`
-	WorkspaceIDs  []string  `json:"workspace_ids"`
+	WorkspaceCount
+	WorkspaceIDs   []string `json:"workspace_ids"`
+}
+
+type WorkspaceCount struct {
+	CountAvailable int      `json:"count_available"`
+	CountFloor     int      `json:"count_floor"`
 }
 
 func (app *App) GetAvailabilityYesterday(w http.ResponseWriter, r *http.Request) {
@@ -271,35 +366,73 @@ func (app *App) GetAvailabilityYesterday(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// Find all availabilities for the previous day
-	floorIDs, err := app.store.FloorProvider.GetAllFloorIDs()
-	if err != nil {
-		log.Printf("App.GetAvailabilityYesterday - error getting floor_id's from provider %v", err)
+	workspacesDict, err := app.getBulkAvailabilities(yesterday, yesterdayEnd)
+	if workspacesDict == nil {
+		log.Printf("App.GetAvailabilityYesterday - error getting BulkAvailabilities %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-	workspacesDict := make(map[string] WorkspaceStat)
-	for _, f := range floorIDs {
-		workspaceIDs, err := app.store.WorkspaceProvider.FindAvailability(f, yesterday, yesterdayEnd)
-		if err != nil {
-			log.Printf("App.GetAvailabilityYesterday - error getting ids from provider %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		count := len(workspaceIDs)
-		countWorkspacesOnFloor, err := app.store.WorkspaceProvider.CountWorkspacesByFloor(f)
-		// Create a map[string]WorkspaceStat for floorid -> ...
-		floorStat := WorkspaceStat{
-			CountAvailable: count,
-			CountFloor: countWorkspacesOnFloor,
-			WorkspaceIDs: workspaceIDs,
-		}
-		workspacesDict[f] = floorStat
-		//allWorkspaceIDs = append(allWorkspaceIDs, workspaceIDs...)
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(workspacesDict)
 	return
+}
+
+func (app *App) getBulkCountAvailabilities(start time.Time, end time.Time) (map[string]WorkspaceCount, error) {
+	// Find all availabilities for the previous day
+	floorIDs, err := app.store.FloorProvider.GetAllFloorIDs()
+	if err != nil {
+		log.Printf("App.getBulkAvailabilities - error getting floor_id's from provider %v", err)
+		return nil, err
+	}
+	workspacesDict := make(map[string]WorkspaceCount)
+	for _, f := range floorIDs {
+		workspaceIDs, err := app.store.WorkspaceProvider.FindAvailability(f, start, end)
+		if err != nil {
+			log.Printf("App.getBulkAvailabilities - error getting ids from provider %v", err)
+			return nil, err
+		}
+		count := len(workspaceIDs)
+		countWorkspacesOnFloor, err := app.store.WorkspaceProvider.CountWorkspacesByFloor(f)
+		// Create a map[string]WorkspaceStat for floorid -> ...
+		floorStat := WorkspaceCount{
+			CountAvailable: count,
+			CountFloor:     countWorkspacesOnFloor,
+		}
+		workspacesDict[f] = floorStat
+		//allWorkspaceIDs = append(allWorkspaceIDs, workspaceIDs...)
+	}
+	return workspacesDict, nil
+}
+
+func (app *App) getBulkAvailabilities(start time.Time, end time.Time) (map[string]WorkspaceStat, error) {
+	// Find all availabilities for the previous day
+	floorIDs, err := app.store.FloorProvider.GetAllFloorIDs()
+	if err != nil {
+		log.Printf("App.getBulkAvailabilities - error getting floor_id's from provider %v", err)
+		return nil, err
+	}
+	workspacesDict := make(map[string]WorkspaceStat)
+	for _, f := range floorIDs {
+		workspaceIDs, err := app.store.WorkspaceProvider.FindAvailability(f, start, end)
+		if err != nil {
+			log.Printf("App.getBulkAvailabilities - error getting ids from provider %v", err)
+			return nil, err
+		}
+		count := len(workspaceIDs)
+		countWorkspacesOnFloor, err := app.store.WorkspaceProvider.CountWorkspacesByFloor(f)
+		// Create a map[string]WorkspaceStat for floorid -> ...
+		wC := WorkspaceCount{
+			CountAvailable: count,
+			CountFloor: countWorkspacesOnFloor,
+		}
+		floorStat := WorkspaceStat{
+			WorkspaceCount: wC,
+			WorkspaceIDs:   workspaceIDs,
+		}
+		workspacesDict[f] = floorStat
+		//allWorkspaceIDs = append(allWorkspaceIDs, workspaceIDs...)
+	}
+	return workspacesDict, nil
 }
 
 func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
