@@ -303,11 +303,10 @@ func (app *App) GetBulkCountAvailability(w http.ResponseWriter, r *http.Request)
 	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
 	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, loc)
 	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, loc)
-	finalEnd = finalEnd.Add(time.Hour*24) // Add one day so it also gets results for the final day
 	// Ensure end time is end of it's day
 	// For loop for each day, collecting the information into a dict
 	allDaysDict := make(map[string]map[string]WorkspaceCount)
-	for s, e := startT, endT; s.Day() != finalEnd.Day(); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
+	for s, e := startT, endT; s.Before(finalEnd); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
 		workspacesDict, err := app.getBulkCountAvailabilities(s, e)
 		if err != nil {
 			log.Printf("App.GetBulkCountAvailability - error getting BulkAvailabilities %v", err)
@@ -347,11 +346,10 @@ func (app *App) GetBulkAvailability(w http.ResponseWriter, r *http.Request) {
 	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, startTime.Location())  // TODO: Check location
 	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, startTime.Location()) // TODO: Check location
 	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, startTime.Location())   // TODO: Check location
-	finalEnd = finalEnd.Add(time.Hour*24) // Add one day so it also gets results for the final day
 	// Ensure end time is end of it's day
 	// For loop for each day, collecting the information into a dict
 	allDaysDict := make(map[string]map[string]WorkspaceStat)
-	for s, e := startT, endT; s.Day() != finalEnd.Day(); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
+	for s, e := startT, endT; s.Before(finalEnd); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
 		workspacesDict, err := app.getBulkAvailabilities(s, e)
 		if err != nil {
 			log.Printf("App.GetBulkAvailability - error getting BulkAvailabilities %v", err)
