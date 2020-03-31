@@ -288,10 +288,16 @@ func (app *App) GetBulkCountAvailability(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	loc, err := time.LoadLocation("America/Vancouver")
+	if err != nil {
+		log.Printf("App.GetBulkAvailability - location failed with: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	// Truncate start time to beginning of the day
-	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, startTime.Location())  // TODO: Check location
-	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, startTime.Location()) // TODO: Check location
-	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, startTime.Location())   // TODO: Check location
+	startT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
+	endT := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 0, loc)
+	finalEnd := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 0, loc)
 	// Ensure end time is end of it's day
 	// For loop for each day, collecting the information into a dict
 	allDaysDict := make(map[string]map[string]WorkspaceCount)
