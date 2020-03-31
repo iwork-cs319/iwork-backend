@@ -42,7 +42,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 	app.router.HandleFunc("/workspaces/{id}", app.UpdateWorkspace).Methods("PATCH")
 	//app.router.HandleFunc("/workspaces/{id}", app.DeleteWorkspace).Methods("DELETE")
 	app.router.HandleFunc("/assignments", app.CreateAssignments).Methods("POST")
-	app.router.HandleFunc("/workspaces/store/available", app.GetAvailabilityYesterday).Methods("GET")
+	//app.router.HandleFunc("/workspaces/store/available", app.GetAvailabilityYesterday).Methods("GET")
 }
 
 func (app *App) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -298,7 +298,7 @@ func (app *App) GetBulkCountAvailability(w http.ResponseWriter, r *http.Request)
 	for s, e := startT, endT; s.Day() != finalEnd.Day(); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
 		workspacesDict, err := app.getBulkCountAvailabilities(s, e)
 		if err != nil {
-			log.Printf("App.GetAvailabilityYesterday - error getting BulkAvailabilities %v", err)
+			log.Printf("App.GetBulkCountAvailability - error getting BulkAvailabilities %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -336,7 +336,7 @@ func (app *App) GetBulkAvailability(w http.ResponseWriter, r *http.Request) {
 	for s, e := startT, endT; s.Day() != finalEnd.Day(); s, e = s.AddDate(0, 0, 1), e.AddDate(0, 0, 1) {
 		workspacesDict, err := app.getBulkAvailabilities(s, e)
 		if err != nil {
-			log.Printf("App.GetAvailabilityYesterday - error getting BulkAvailabilities %v", err)
+			log.Printf("App.GetBulkAvailability - error getting BulkAvailabilities %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -358,24 +358,24 @@ type WorkspaceCount struct {
 	CountFloor     int      `json:"count_floor"`
 }
 
-func (app *App) GetAvailabilityYesterday(w http.ResponseWriter, r *http.Request) {
-	// Gets called the day after to store the availabilities of the previous day.
-	yesterday, yesterdayEnd, err := utils.TimeYesterday()
-	if err != nil {
-		log.Printf("App.GetAvailabilityYesterday - error getting time %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	workspacesDict, err := app.getBulkAvailabilities(yesterday, yesterdayEnd)
-	if workspacesDict == nil {
-		log.Printf("App.GetAvailabilityYesterday - error getting BulkAvailabilities %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(workspacesDict)
-	return
-}
+//func (app *App) GetAvailabilityYesterday(w http.ResponseWriter, r *http.Request) {
+//	// Gets called the day after to store the availabilities of the previous day.
+//	yesterday, yesterdayEnd, err := utils.TimeYesterday()
+//	if err != nil {
+//		log.Printf("App.GetAvailabilityYesterday - error getting time %v", err)
+//		w.WriteHeader(http.StatusInternalServerError)
+//		return
+//	}
+//	workspacesDict, err := app.getBulkAvailabilities(yesterday, yesterdayEnd)
+//	if workspacesDict == nil {
+//		log.Printf("App.GetAvailabilityYesterday - error getting BulkAvailabilities %v", err)
+//		w.WriteHeader(http.StatusInternalServerError)
+//		return
+//	}
+//	w.WriteHeader(http.StatusOK)
+//	json.NewEncoder(w).Encode(workspacesDict)
+//	return
+//}
 
 func (app *App) getBulkCountAvailabilities(start time.Time, end time.Time) (map[string]WorkspaceCount, error) {
 	// Find all availabilities for the previous day

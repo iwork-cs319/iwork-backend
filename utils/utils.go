@@ -16,16 +16,16 @@ func TimeStampToTime(timestamp string) (time.Time, error) {
 	tm := time.Unix(i, 0).UTC()
 	return tm, err
 }
-func TimeYesterday() (time.Time, time.Time, error) {
-	vancouver, err := time.LoadLocation("America/Vancouver")
-	if err != nil {
-	return time.Time{}, time.Time{}, err
-	}
-	twentyfour := time.Now().In(vancouver).Add(-24*time.Hour) // 24 Hours Ago
-	yesterday := time.Date(twentyfour.Year(), twentyfour.Month(), twentyfour.Day(), 0, 0, 0, 0, twentyfour.Location()) // 0.0.0
-	yesterdayEnd := yesterday.Add(time.Hour * time.Duration(23) + time.Minute * time.Duration(59) + time.Second * time.Duration(59)) // Time start of day + 23:59:59
-	return yesterday, yesterdayEnd, nil
-}
+//func TimeYesterday() (time.Time, time.Time, error) {
+//	vancouver, err := time.LoadLocation("America/Vancouver")
+//	if err != nil {
+//	return time.Time{}, time.Time{}, err
+//	}
+//	twentyfour := time.Now().In(vancouver).Add(-24*time.Hour) // 24 Hours Ago
+//	yesterday := time.Date(twentyfour.Year(), twentyfour.Month(), twentyfour.Day(), 0, 0, 0, 0, twentyfour.Location()) // 0.0.0
+//	yesterdayEnd := yesterday.Add(time.Hour * time.Duration(23) + time.Minute * time.Duration(59) + time.Second * time.Duration(59)) // Time start of day + 23:59:59
+//	return yesterday, yesterdayEnd, nil
+//}
 
 func RunFixturesOnDB(dbUrl string, fileNames []string) error {
 	database, err := sql.Open("postgres", dbUrl)
