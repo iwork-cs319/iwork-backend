@@ -104,16 +104,14 @@ func (p PostgresDBStore) RemoveFloor(id string, force bool) error {
 		return errors.New("invalid operation: there are existing bookings for workspaces on this floor")
 	}
 
-	deleteWorkspaceStmt := `UPDATE workspaces SET deleted=true
-								WHERE floor_id=$1`
+	deleteWorkspaceStmt := `UPDATE workspaces SET deleted=true WHERE floor_id=$1`
 	_, err = tx.Exec(deleteWorkspaceStmt, id)
 	if err != nil {
 		log.Println("Postgres.RemoveFloor: error setting deleted on workspace")
 		return err
 	}
 	deletedStmt :=
-		`UPDATE floors SET deleted=true,
-				WHERE id = $1`
+		`UPDATE floors SET deleted=true WHERE id = $1`
 	_, err = tx.Exec(deletedStmt, id)
 	if err != nil {
 		log.Println("Postgres.RemoveFloor: error setting deleted on floor")
