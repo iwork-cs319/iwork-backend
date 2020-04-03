@@ -161,6 +161,11 @@ func (app *App) DeleteFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = json.Unmarshal(reqBody, &deleteFloor)
+	if err != nil {
+		log.Printf("App.DeleteFloor - error unmarshaling request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	err = app.store.FloorProvider.RemoveFloor(floorID, deleteFloor.ForceDelete)
 	if err != nil {
