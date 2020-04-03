@@ -41,6 +41,13 @@ func NewDriveClient(driveConfigJSON string) (Drive, error) {
 }
 
 func (d GDrive) createDir(name string, parentId string) (*drive.File, error) {
+	directory, err := d.getDirectory(name)
+	if err != nil {
+		return nil, err
+	}
+	if directory != nil && directory.Parents[0] == parentId {
+		return directory, nil
+	}
 	dir := &drive.File{
 		Name:     name,
 		MimeType: "application/vnd.google-apps.folder",
@@ -119,7 +126,11 @@ func (d GDrive) UploadArchiveDataFile(name string, content io.Reader) error {
 }
 
 func (d GDrive) getDirectory(name string) (*drive.File, error) {
-	list, err := d.srv.Files.List().OrderBy("name").Do()
+	list, err := d.srv.Files.
+		List().
+		Fields("files(id,name,md5Checksum,mimeType,size,createdTime,parents)").
+		OrderBy("name").
+		Do()
 	if err != nil {
 		return nil, err
 	}
