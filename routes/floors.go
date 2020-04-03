@@ -22,7 +22,7 @@ func (app *App) RegisterFloorRoutes() {
 	app.router.HandleFunc("/floors/{id}", app.GetOneFloor).Methods("GET")
 	app.router.HandleFunc("/floors", app.GetAllFloors).Methods("GET")
 	//app.router.HandleFunc("/floors/{id}", app.UpdateFloor).Methods("PATCH")
-	//app.router.HandleFunc("/floors/{id}", app.DeleteFloor).Methods("DELETE")
+	app.router.HandleFunc("/floors/{id}", app.DeleteFloor).Methods("DELETE")
 }
 
 func (app *App) CreateFloor(w http.ResponseWriter, r *http.Request) {
