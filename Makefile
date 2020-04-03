@@ -1,5 +1,5 @@
 run:
-	DATABASE_URL=$$(heroku config:get HEROKU_POSTGRESQL_AQUA_URL -a icbc-go-api) \
+	DATABASE_URL=$$(heroku config:get DATABASE_URL -a icbc-go-api) \
 	REDIS_URL=$$(heroku config:get REDIS_URL -a icbc-go-api) \
 	G_DRIVE_CREDENTIALS=$$(heroku config:get G_DRIVE_CREDENTIALS -a icbc-go-api) \
 	MICROSOFT_CLIENT_ID=$$(heroku config:get MICROSOFT_CLIENT_ID -a icbc-go-api) \

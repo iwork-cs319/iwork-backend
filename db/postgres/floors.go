@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go-api/model"
 	"log"
+	"time"
 )
 
 func (p PostgresDBStore) GetOneFloor(id string) (*model.Floor, error) {
@@ -91,29 +92,32 @@ func (p PostgresDBStore) RemoveFloor(id string, force bool) error {
 	if err != nil {
 		return err
 	}
+	now := time.Now()
 	defer tx.Rollback()
 	existingBookings := `SELECT count(*) FROM bookings b INNER JOIN workspaces w on b.workspace_id = w.id
 							WHERE w.floor_id=$1 AND (b.start_time >= $2 OR b.end_time >=$2)`
 	var count int
 	err = tx.QueryRow(existingBookings,
 		id,
+		now,
 	).Scan(&count)
-
+	if err != nil {
+		log.Println("Postgres.RemoveFloor: error retrieving bookings")
+		return err
+	}
 	if count > 0 && !force {
 		log.Println("Postgres.RemoveFloor: there are existing bookings for workspaces on this floor")
 		return errors.New("invalid operation: there are existing bookings for workspaces on this floor")
 	}
 
-	deleteWorkspaceStmt := `UPDATE workspaces SET deleted=true
-								WHERE floor_id=$1`
+	deleteWorkspaceStmt := `UPDATE workspaces SET deleted=true WHERE floor_id=$1`
 	_, err = tx.Exec(deleteWorkspaceStmt, id)
 	if err != nil {
 		log.Println("Postgres.RemoveFloor: error setting deleted on workspace")
 		return err
 	}
 	deletedStmt :=
-		`UPDATE floors SET deleted=true,
-				WHERE id = $1`
+		`UPDATE floors SET deleted=true WHERE id = $1`
 	_, err = tx.Exec(deletedStmt, id)
 	if err != nil {
 		log.Println("Postgres.RemoveFloor: error setting deleted on floor")
