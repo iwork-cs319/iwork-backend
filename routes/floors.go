@@ -22,7 +22,7 @@ func (app *App) RegisterFloorRoutes() {
 	app.router.HandleFunc("/floors/{id}", app.GetOneFloor).Methods("GET")
 	app.router.HandleFunc("/floors", app.GetAllFloors).Methods("GET")
 	//app.router.HandleFunc("/floors/{id}", app.UpdateFloor).Methods("PATCH")
-	//app.router.HandleFunc("/floors/{id}", app.DeleteFloor).Methods("DELETE")
+	app.router.HandleFunc("/floors/{id}", app.DeleteFloor).Methods("DELETE")
 }
 
 func (app *App) CreateFloor(w http.ResponseWriter, r *http.Request) {
@@ -161,6 +161,11 @@ func (app *App) DeleteFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = json.Unmarshal(reqBody, &deleteFloor)
+	if err != nil {
+		log.Printf("App.DeleteFloor - error unmarshaling request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	err = app.store.FloorProvider.RemoveFloor(floorID, deleteFloor.ForceDelete)
 	if err != nil {
