@@ -366,12 +366,12 @@ func (app *App) GetBulkAvailability(w http.ResponseWriter, r *http.Request) {
 
 type WorkspaceStat struct {
 	WorkspaceCount
-	WorkspaceIDs   []string `json:"workspace_ids"`
+	WorkspaceIDs []string `json:"workspace_ids"`
 }
 
 type WorkspaceCount struct {
-	CountAvailable int      `json:"count_available"`
-	CountFloor     int      `json:"count_floor"`
+	CountAvailable int `json:"count_available"`
+	CountFloor     int `json:"count_floor"`
 }
 
 //func (app *App) GetAvailabilityYesterday(w http.ResponseWriter, r *http.Request) {
@@ -439,7 +439,7 @@ func (app *App) getBulkAvailabilities(start time.Time, end time.Time) (map[strin
 		// Create a map[string]WorkspaceStat for floorid -> ...
 		wC := WorkspaceCount{
 			CountAvailable: count,
-			CountFloor: countWorkspacesOnFloor,
+			CountFloor:     countWorkspacesOnFloor,
 		}
 		floorStat := WorkspaceStat{
 			WorkspaceCount: wC,
@@ -531,8 +531,8 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	createdWorkspaces := make([]*model.Workspace, 0)
+	errors := make([]*model.BulkCreateWorkspaceError, 0)
+	createdWorkspaces := make([]*model.CreateWorkspaceInput, 0)
 	for _, ws := range input.Workspaces {
 		workspace := &model.Workspace{
 			Floor:   input.FloorId,
@@ -546,9 +546,11 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 				"App.BulkCreateWorkspaces - failed to update details for workspace %+v with floor %s - err: %+v\n",
 				ws, input.FloorId, err,
 			)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(createdWorkspaces)
-			return
+			errors = append(
+				errors,
+				&model.BulkCreateWorkspaceError{WorkspaceName: ws.WorkspaceName, Message: err.Error()},
+			)
+			continue
 		}
 		if ws.WorkspaceId == "" && ws.UserId == "" {
 			// New workspace with no user
@@ -564,11 +566,13 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 					"App.BulkCreateWorkspaces - failed to create a default offering for workspace %+v with floor %s - err: %+v\n",
 					ws, input.FloorId, err,
 				)
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(createdWorkspaces)
-				return
+				errors = append(
+					errors,
+					&model.BulkCreateWorkspaceError{WorkspaceName: ws.WorkspaceName, Message: err.Error()},
+				)
+				continue
 			}
-		} else if ws.WorkspaceId == "" && ws.UserId != "" {
+		} else if ws.UserId != "" {
 			// New workspace with user
 			// Create a assignment
 			err = app.store.WorkspaceProvider.CreateAssignment(ws.UserId, workspaceID)
@@ -577,14 +581,27 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 					"App.BulkCreateWorkspaces - failed to create an assignment for workspace %+v with floor %s - err: %+v\n",
 					ws, input.FloorId, err,
 				)
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(createdWorkspaces)
-				return
+				errors = append(
+					errors,
+					&model.BulkCreateWorkspaceError{WorkspaceName: ws.WorkspaceName, Message: err.Error()},
+				)
+				continue
 			}
 		}
-		workspace.ID = workspaceID
-		createdWorkspaces = append(createdWorkspaces, workspace)
+		ws.WorkspaceId = workspaceID
+		createdWorkspaces = append(createdWorkspaces, ws)
 	}
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdWorkspaces)
+	if len(createdWorkspaces) > 0 {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	ret := struct {
+		Data   []*model.CreateWorkspaceInput `json:"data"`
+		Errors []error                       `json:"errors"`
+	}{
+		createdWorkspaces,
+		errors,
+	}
+	json.NewEncoder(w).Encode(ret)
 }
