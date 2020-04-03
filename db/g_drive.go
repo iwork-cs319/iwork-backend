@@ -1,6 +1,8 @@
 package db
 
 import (
+	"errors"
+	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
@@ -10,6 +12,7 @@ import (
 
 type Drive interface {
 	UploadFloorPlan(name string, content io.Reader) (string, error)
+	ListAllFiles() ([]*drive.File, error)
 }
 
 type GDrive struct {
@@ -38,6 +41,14 @@ func NewDriveClient(driveConfigJSON string) (Drive, error) {
 }
 
 func (d GDrive) createDir(name string, parentId string) (*drive.File, error) {
+	directory, err := d.getDirectory(name)
+	if err != nil {
+		return nil, err
+	}
+	if directory != nil {
+		return directory, nil
+	}
+	log.Println("folder doesnt exist; creating new one", directory, parentId)
 	dir := &drive.File{
 		Name:     name,
 		MimeType: "application/vnd.google-apps.folder",
@@ -99,4 +110,29 @@ func (d GDrive) UploadFloorPlan(name string, content io.Reader) (string, error) 
 		return "", err
 	}
 	return file.Id, nil
+}
+
+func (d GDrive) getDirectory(name string) (*drive.File, error) {
+	list, err := d.srv.Files.List().
+		Q(fmt.Sprintf("name='%s' and mimeType='application/vnd.google-apps.folder'", name)).
+		Do()
+	if err != nil {
+		return nil, err
+	}
+	if len(list.Files) > 0 {
+		return list.Files[0], nil
+	}
+	return nil, errors.New("directory not found")
+}
+
+func (d GDrive) ListAllFiles() ([]*drive.File, error) {
+	list, err := d.srv.Files.List().Fields("files(id,name,md5Checksum,mimeType,size,createdTime,parents)").OrderBy("name").Do()
+	if err != nil {
+		return nil, nil
+	}
+	//for _, f := range list.Files {
+	//	log.Printf("======= Name: %s, Id: %s, Parent: %s, Mime: %s", f.Name, f.Id, f.Parents, f.MimeType)
+	//log.Printf("-- %+v", f)
+	//}
+	return list.Files, nil
 }
