@@ -347,6 +347,13 @@ func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...int
 	return offerings, nil
 }
 
+func (p PostgresDBStore) GetExpiredOfferings(since time.Time) ([]*model.Offering, error) {
+	sqlStatement :=
+		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by FROM bookings 
+				WHERE end_time < $1`
+	return p.queryMultipleOfferings(sqlStatement, since)
+}
+
 func (p PostgresDBStore) queryMultipleExpandedOfferings(sqlStatement string, args ...interface{}) ([]*model.ExpandedOffering, error) {
 	rows, err := p.database.Query(sqlStatement, args...)
 	if err != nil {

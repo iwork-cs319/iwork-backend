@@ -114,3 +114,11 @@ func (this *ExpandedOffering) Equal(other *ExpandedOffering) bool {
 		this.CreatedBy == other.CreatedBy && this.WorkspaceName == other.WorkspaceID &&
 		this.UserName == other.UserName && this.FloorID == other.FloorID && this.FloorName == other.FloorName
 }
+
+type Assignment struct {
+	ID          string    `json:"id"`
+	WorkspaceID string    `json:"workspace_id"`
+	UserID      string    `json:"user_id"`
+	StartDate   time.Time `json:"start_time"`
+	EndDate     time.Time `json:"end_time"`
+}

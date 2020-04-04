@@ -351,3 +351,26 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 	err = tx.Commit()
 	return workspaceId, err
 }
+
+func (p PostgresDBStore) GetDeletedWorkspaces() ([]*model.Workspace, error) {
+	rows, err := p.database.Query(`SELECT id, name, floor_id, details, metadata FROM workspaces WHERE deleted=TRUE;`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	workspaces := make([]*model.Workspace, 0)
+	for rows.Next() {
+		var workspace model.Workspace
+		err = rows.Scan(&workspace.ID, &workspace.Name, &workspace.Floor, &workspace.Details, &workspace.Props)
+		if err != nil {
+			// dont cause panic here, log it
+			log.Printf("PostgresDBStore.GetAllWorkspaces: %v\n", err)
+		}
+		workspaces = append(workspaces, &workspace)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return workspaces, nil
+}

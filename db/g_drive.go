@@ -26,6 +26,8 @@ const (
 	RootFolderName      = "root"
 )
 
+var DirNotFound = errors.New("directory not found")
+
 func NewDriveClient(driveConfigJSON string) (Drive, error) {
 	service, err := drive.NewService(
 		context.Background(),
@@ -44,7 +46,7 @@ func NewDriveClient(driveConfigJSON string) (Drive, error) {
 
 func (d GDrive) createDir(name string, parentId string) (*drive.File, error) {
 	directory, err := d.getDirectory(name)
-	if err != nil {
+	if err != nil && err != DirNotFound {
 		return nil, err
 	}
 	if directory != nil {
@@ -124,7 +126,7 @@ func (d GDrive) getDirectory(name string) (*drive.File, error) {
 	if len(list.Files) > 0 {
 		return list.Files[0], nil
 	}
-	return nil, errors.New("directory not found")
+	return nil, DirNotFound
 }
 
 func (d GDrive) ListAllFiles() ([]*drive.File, error) {

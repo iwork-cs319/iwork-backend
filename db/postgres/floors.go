@@ -126,6 +126,11 @@ func (p PostgresDBStore) RemoveFloor(id string, force bool) error {
 	return tx.Commit()
 }
 
+func (p PostgresDBStore) GetDeletedFloors() ([]*model.Floor, error) {
+	sqlStatement := `SELECT id, name, download_url, address FROM floors WHERE deleted=true;`
+	return p.queryMultipleFloors(sqlStatement)
+}
+
 func (p PostgresDBStore) queryMultipleFloors(sqlStatement string, args ...interface{}) ([]*model.Floor, error) {
 	rows, err := p.database.Query(sqlStatement, args...)
 	if err != nil {
