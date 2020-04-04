@@ -22,6 +22,11 @@ type BulkCreateWorkspacesInput struct {
 	Workspaces []*CreateWorkspaceInput `json:"workspaces"`
 }
 
+type BulkCreateWorkspaceError struct {
+	WorkspaceName string `json:"workspace_name"`
+	Message       string `json:"message"`
+}
+
 type DeleteFloor struct {
 	ForceDelete bool `json:"force_delete"`
 }
