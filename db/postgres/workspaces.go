@@ -222,13 +222,27 @@ func (p PostgresDBStore) CreateAssignment(userId, workspaceId string) error {
 	now := time.Now()
 	log.Printf("Postgres.CreateAssignment: time.Now()=%s", now.UTC().String())
 
-	// Check for future bookings
 	var count int
-	err = tx.QueryRow(
+	if err = tx.QueryRow(
+		`SELECT count(*) FROM workspace_assignee
+					WHERE workspace_id=$1 AND user_id=$2 AND end_time IS NULL`,
+		workspaceId, userId,
+	).Scan(&count); err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	// Check for future bookings
+
+	if err = tx.QueryRow(
 		`SELECT count(*) FROM bookings 
 						WHERE workspace_id=$1 AND end_time >= $2`,
 		workspaceId, now,
-	).Scan(&count)
+	).Scan(&count); err != nil {
+		return err
+	}
 	if count > 0 {
 		return errors.New("invalid operation: workspace has outstanding bookings")
 	}
