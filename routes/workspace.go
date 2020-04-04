@@ -573,8 +573,7 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		} else if ws.UserId != "" {
-			// New workspace with user
-			// Create a assignment
+			// Create an assignment
 			err = app.store.WorkspaceProvider.CreateAssignment(ws.UserId, workspaceID)
 			if err != nil {
 				log.Printf(
@@ -597,8 +596,8 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	ret := struct {
-		Data   []*model.CreateWorkspaceInput `json:"data"`
-		Errors []error                       `json:"errors"`
+		Data   []*model.CreateWorkspaceInput     `json:"data"`
+		Errors []*model.BulkCreateWorkspaceError `json:"errors"`
 	}{
 		createdWorkspaces,
 		errors,
