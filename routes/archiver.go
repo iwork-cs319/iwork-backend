@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -20,24 +21,29 @@ func (app *App) Archive(w http.ResponseWriter, r *http.Request) {
 	archiveFileName := fmt.Sprintf("Test_%s.archive", archiveDateTimestamp)
 	writer.WriteString(fmt.Sprintf("%s\n", archiveFileName)) // Write file name
 
-	if err := app.WriteBookings(writer, now); err != nil {
-		WriteLine(writer, "-- error writing bookings")
-	}
-
 	if err := app.WriteOfferings(writer, now); err != nil {
 		WriteLine(writer, "-- error writing offerings")
+		log.Println("App.Archive.Offerings:", err)
 	}
 
-	if err := app.WriteFloors(writer); err != nil {
-		WriteLine(writer, "-- error writing floors")
-	}
-
-	if err := app.WriteWorkspaces(writer); err != nil {
-		WriteLine(writer, "-- error writing workspaces")
+	if err := app.WriteBookings(writer, now); err != nil {
+		WriteLine(writer, "-- error writing bookings")
+		log.Println("App.Archive.Bookings:", err)
 	}
 
 	if err := app.WriteWorkspaceAssignments(writer, now); err != nil {
 		WriteLine(writer, "-- error writing assignments")
+		log.Println("App.Archive.Assignments:", err)
+	}
+
+	if err := app.WriteWorkspaces(writer); err != nil {
+		WriteLine(writer, "-- error writing workspaces")
+		log.Println("App.Archive.Workspaces:", err)
+	}
+
+	if err := app.WriteFloors(writer); err != nil {
+		WriteLine(writer, "-- error writing floors")
+		log.Println("App.Archive.Floors:", err)
 	}
 
 	if err := app.gDrive.UploadArchiveDataFile(archiveFileName, writer); err != nil {
