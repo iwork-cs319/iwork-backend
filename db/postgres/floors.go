@@ -158,3 +158,18 @@ func (p PostgresDBStore) queryMultipleFloors(sqlStatement string, args ...interf
 	}
 	return floors, nil
 }
+
+func (p PostgresDBStore) DeleteFloors(ids []string) error {
+	tx, err := p.database.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		_, err := tx.Exec(`DELETE from floors where id=$1`, id)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}

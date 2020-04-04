@@ -374,3 +374,18 @@ func (p PostgresDBStore) GetDeletedWorkspaces() ([]*model.Workspace, error) {
 	}
 	return workspaces, nil
 }
+
+func (p PostgresDBStore) DeleteWorkspaces(ids []string) error {
+	tx, err := p.database.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		_, err := tx.Exec(`DELETE from workspaces where id=$1`, id)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}

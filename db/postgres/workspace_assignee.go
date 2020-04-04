@@ -78,3 +78,18 @@ func (p PostgresDBStore) GetExpiredAssignments(since time.Time) ([]*model.Assign
 	}
 	return assignments, nil
 }
+
+func (p PostgresDBStore) DeleteAssignments(ids []string) error {
+	tx, err := p.database.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		_, err := tx.Exec(`DELETE from workspace_assignee where id=$1`, id)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}

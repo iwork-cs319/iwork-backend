@@ -57,14 +57,16 @@ func (app *App) WriteBookings(w *bytes.Buffer, now time.Time) error {
 		return err
 	}
 	WriteLine(w, "== Bookings(id|~|workspace_id|~|user_id|~|created_by|~|start_date|~|end_date|~|cancelled)")
+	ids := make([]string, 0)
 	for _, b := range bookings {
 		WriteLine(w, fmt.Sprintf(
 			"%s|~|%s|~|%s|~|%s|~|%s|~|%s|~|%t",
 			b.ID, b.WorkspaceID, b.UserID, b.CreatedBy,
 			b.StartDate.Format(time.RFC3339), b.EndDate.Format(time.RFC3339), b.Cancelled,
 		))
+		ids = append(ids, b.ID)
 	}
-	return nil
+	return app.store.BookingProvider.DeleteBookings(ids)
 }
 
 func (app *App) WriteOfferings(w *bytes.Buffer, now time.Time) error {
@@ -73,14 +75,16 @@ func (app *App) WriteOfferings(w *bytes.Buffer, now time.Time) error {
 		return err
 	}
 	WriteLine(w, "== Offerings(id|~|workspace_id|~|user_id|~|created_by|~|start_date|~|end_date|~|cancelled)")
+	ids := make([]string, 0)
 	for _, o := range offerings {
 		WriteLine(w, fmt.Sprintf(
 			"%s|~|%s|~|%s|~|%s|~|%s|~|%s|~|%t",
 			o.ID, o.WorkspaceID, o.UserID, o.CreatedBy,
 			o.StartDate.Format(time.RFC3339), o.EndDate.Format(time.RFC3339), o.Cancelled,
 		))
+		ids = append(ids, o.ID)
 	}
-	return nil
+	return app.store.OfferingProvider.DeleteOfferings(ids)
 }
 
 func (app *App) WriteFloors(w *bytes.Buffer) error {
@@ -89,13 +93,15 @@ func (app *App) WriteFloors(w *bytes.Buffer) error {
 		return err
 	}
 	WriteLine(w, "== Floors(id|~|name|~|address|~|download_url)")
+	ids := make([]string, 0)
 	for _, f := range floors {
 		WriteLine(w, fmt.Sprintf(
 			"%s|~|%s|~|%s|~|%s",
 			f.ID, f.Name, f.Address, f.DownloadURL,
 		))
+		ids = append(ids, f.ID)
 	}
-	return nil
+	return app.store.FloorProvider.DeleteFloors(ids)
 }
 
 func (app *App) WriteWorkspaces(w *bytes.Buffer) error {
@@ -104,14 +110,16 @@ func (app *App) WriteWorkspaces(w *bytes.Buffer) error {
 		return err
 	}
 	WriteLine(w, "== Workspaces(id|~|name|~|floor_id|~|details|~|props)")
+	ids := make([]string, 0)
 	for _, workspace := range workspaces {
 		props, _ := json.Marshal(workspace.Props)
 		WriteLine(w, fmt.Sprintf(
 			"%s|~|%s|~|%s|~|%s|~|%s",
 			workspace.ID, workspace.Name, workspace.Floor, workspace.Details, string(props),
 		))
+		ids = append(ids, workspace.ID)
 	}
-	return nil
+	return app.store.WorkspaceProvider.DeleteWorkspaces(ids)
 }
 
 func (app *App) WriteWorkspaceAssignments(w *bytes.Buffer, now time.Time) error {
@@ -120,12 +128,14 @@ func (app *App) WriteWorkspaceAssignments(w *bytes.Buffer, now time.Time) error 
 		return err
 	}
 	WriteLine(w, "== Assignments(id|~|workspace_id|~|user_id|~|start_time|~|end_time)")
+	ids := make([]string, 0)
 	for _, a := range assignments {
 		WriteLine(w, fmt.Sprintf(
 			"%s|~|%s|~|%s|~|%s|~|%s",
 			a.ID, a.WorkspaceID, a.UserID,
 			a.StartDate.Format(time.RFC3339), a.EndDate.Format(time.RFC3339),
 		))
+		ids = append(ids, a.ID)
 	}
-	return nil
+	return app.store.AssigneeProvider.DeleteAssignments(ids)
 }
