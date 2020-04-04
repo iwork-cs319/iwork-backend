@@ -347,6 +347,13 @@ func (p PostgresDBStore) queryMultipleOfferings(sqlStatement string, args ...int
 	return offerings, nil
 }
 
+func (p PostgresDBStore) GetExpiredOfferings(since time.Time) ([]*model.Offering, error) {
+	sqlStatement :=
+		`SELECT id, user_id, workspace_id, start_time, end_time, cancelled, created_by FROM bookings 
+				WHERE end_time < $1`
+	return p.queryMultipleOfferings(sqlStatement, since)
+}
+
 func (p PostgresDBStore) queryMultipleExpandedOfferings(sqlStatement string, args ...interface{}) ([]*model.ExpandedOffering, error) {
 	rows, err := p.database.Query(sqlStatement, args...)
 	if err != nil {
@@ -382,4 +389,19 @@ func (p PostgresDBStore) queryMultipleExpandedOfferings(sqlStatement string, arg
 		return nil, err
 	}
 	return offerings, nil
+}
+
+func (p PostgresDBStore) DeleteOfferings(ids []string) error {
+	tx, err := p.database.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		_, err := tx.Exec(`DELETE from offerings where id=$1`, id)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

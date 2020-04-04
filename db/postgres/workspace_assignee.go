@@ -2,6 +2,9 @@ package postgres
 
 import (
 	"database/sql"
+	"go-api/model"
+	"go-api/utils"
+	"log"
 	"time"
 )
 
@@ -41,4 +44,52 @@ func (p PostgresDBStore) IsFullyAssigned(id string, startTime time.Time, endTime
 	default:
 		return false, err
 	}
+}
+
+func (p PostgresDBStore) GetExpiredAssignments(since time.Time) ([]*model.Assignment, error) {
+	rows, err := p.database.Query(
+		`SELECT id, workspace_id, user_id, start_time, end_time FROM workspace_assignee WHERE end_time < $1`,
+		since,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	assignments := make([]*model.Assignment, 0)
+	for rows.Next() {
+		var assignment model.Assignment
+		err := rows.Scan(
+			&assignment.ID,
+			&assignment.WorkspaceID,
+			&assignment.UserID,
+			&assignment.StartDate,
+			&assignment.EndDate,
+		)
+		if err != nil {
+			log.Printf("PostgresDBStore.GetExpiredAssignments: %v\n", err)
+		}
+		if assignment.UserID != utils.EmptyUserUUID {
+			assignments = append(assignments, &assignment)
+		}
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return assignments, nil
+}
+
+func (p PostgresDBStore) DeleteAssignments(ids []string) error {
+	tx, err := p.database.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		_, err := tx.Exec(`DELETE from workspace_assignee where id=$1`, id)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

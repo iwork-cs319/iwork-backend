@@ -12,6 +12,7 @@ import (
 
 type Drive interface {
 	UploadFloorPlan(name string, content io.Reader) (string, error)
+	UploadArchiveDataFile(name string, content io.Reader) error
 	ListAllFiles() ([]*drive.File, error)
 }
 
@@ -21,8 +22,11 @@ type GDrive struct {
 
 const (
 	FloorPlanFolderName = "floor-plans"
+	ArchiveFolderName   = "archive"
 	RootFolderName      = "root"
 )
+
+var DirNotFound = errors.New("directory not found")
 
 func NewDriveClient(driveConfigJSON string) (Drive, error) {
 	service, err := drive.NewService(
@@ -42,7 +46,7 @@ func NewDriveClient(driveConfigJSON string) (Drive, error) {
 
 func (d GDrive) createDir(name string, parentId string) (*drive.File, error) {
 	directory, err := d.getDirectory(name)
-	if err != nil {
+	if err != nil && err != DirNotFound {
 		return nil, err
 	}
 	if directory != nil {
@@ -122,7 +126,7 @@ func (d GDrive) getDirectory(name string) (*drive.File, error) {
 	if len(list.Files) > 0 {
 		return list.Files[0], nil
 	}
-	return nil, errors.New("directory not found")
+	return nil, DirNotFound
 }
 
 func (d GDrive) ListAllFiles() ([]*drive.File, error) {
@@ -135,4 +139,18 @@ func (d GDrive) ListAllFiles() ([]*drive.File, error) {
 	//log.Printf("-- %+v", f)
 	//}
 	return list.Files, nil
+}
+
+func (d GDrive) UploadArchiveDataFile(name string, content io.Reader) error {
+	dir, err := d.createDir(ArchiveFolderName, RootFolderName)
+	if err != nil {
+		log.Println("Failed to create folder: " + err.Error())
+		return err
+	}
+	_, err = d.createFile(name, "text/plain", content, dir.Id)
+	if err != nil {
+		log.Printf("Could not create file: %v\n", err)
+		return err
+	}
+	return nil
 }

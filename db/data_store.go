@@ -36,6 +36,8 @@ type workspaceProvider interface {
 	CountWorkspacesByFloor(floorId string) (int, error)
 	CreateAssignment(userId, workspaceId string) error
 	CreateAssignWorkspace(workspace *model.Workspace, userId string) (string, error)
+	GetDeletedWorkspaces() ([]*model.Workspace, error)
+	DeleteWorkspaces(ids []string) error
 }
 
 type bookingProvider interface {
@@ -52,6 +54,8 @@ type bookingProvider interface {
 	CreateBooking(booking *model.Booking) (string, error)
 	UpdateBooking(id string, booking *model.Booking) error
 	RemoveBooking(id string) error
+	GetExpiredBookings(since time.Time) ([]*model.Booking, error)
+	DeleteBookings(ids []string) error
 }
 
 type userProvider interface {
@@ -70,7 +74,9 @@ type floorProvider interface {
 	GetAllFloorIDs() ([]string, error)
 	CreateFloor(floor *model.Floor) (string, error)
 	RemoveFloor(id string, force bool) error
+	GetDeletedFloors() ([]*model.Floor, error)
 	//UpdateFloor(id string, user *model.Floor) error
+	DeleteFloors(ids []string) error
 }
 
 type offeringProvider interface {
@@ -89,9 +95,13 @@ type offeringProvider interface {
 	CreateDefaultOffering(booking *model.Offering) (string, error)
 	UpdateOffering(id string, booking *model.Offering) error
 	RemoveOffering(id string) error
+	GetExpiredOfferings(since time.Time) ([]*model.Offering, error)
+	DeleteOfferings(ids []string) error
 }
 
 type assigneeProvider interface {
 	IsAssigned(id string, start time.Time, end time.Time) (bool, error)
 	IsFullyAssigned(id string, start time.Time, end time.Time) (bool, error)
+	GetExpiredAssignments(since time.Time) ([]*model.Assignment, error)
+	DeleteAssignments(ids []string) error
 }

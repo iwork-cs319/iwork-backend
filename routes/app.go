@@ -87,6 +87,7 @@ func (app *App) RegisterRoutes() {
 	app.RegisterWorkspaceRoutes()
 	app.RegisterBookingRoutes()
 	app.RegisterOfferingRoutes()
+	app.RegisterArchiverRoutes()
 }
 
 func (app *App) Close() {
