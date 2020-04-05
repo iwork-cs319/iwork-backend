@@ -6,6 +6,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gorilla/mux"
 	"go-api/model"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -63,6 +64,13 @@ func (app *App) CreateFloor(w http.ResponseWriter, r *http.Request) {
 	if !acceptedImages[mime.String()] {
 		log.Println("App.CreateFloor - The image must be of type jpg, jpeg or png: Mime was of type " + mime.String())
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// MIME Reads part of the file, rewind to the start
+	_, err = imageFile.Seek(0, io.SeekStart)
+	if err != nil {
+		log.Println("App.CreateFloor - Something went wrong with seeking back to the front")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
