@@ -3,8 +3,10 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gorilla/mux"
 	"go-api/model"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -25,9 +27,13 @@ func (app *App) RegisterFloorRoutes() {
 	app.router.HandleFunc("/floors/{id}", app.DeleteFloor).Methods("DELETE")
 }
 
+var acceptedImages = map[string]bool{
+	"image/png": true,
+	"image/jpeg": true, // jpg are considered jpeg
+}
+
 func (app *App) CreateFloor(w http.ResponseWriter, r *http.Request) {
 	var newFloor model.Floor
-
 	r.Body = http.MaxBytesReader(w, r.Body, MaxFileSize+512)
 	parseErr := r.ParseMultipartForm(MaxFileSize)
 	if parseErr != nil {
@@ -46,6 +52,25 @@ func (app *App) CreateFloor(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("App.CreateFloor - image is absent: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	mime, errMime := mimetype.DetectReader(imageFile)
+	if errMime != nil {
+		log.Println("App.CreateFloor - Error handling mime: " + errMime.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if !acceptedImages[mime.String()] {
+		log.Println("App.CreateFloor - The image must be of type jpg, jpeg or png: Mime was of type " + mime.String())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// MIME Reads part of the file, rewind to the start
+	_, err = imageFile.Seek(0, io.SeekStart)
+	if err != nil {
+		log.Println("App.CreateFloor - Something went wrong with seeking back to the front")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
