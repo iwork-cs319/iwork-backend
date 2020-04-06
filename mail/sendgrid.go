@@ -17,7 +17,10 @@ const Booking = "booking"
 const Offering = "offering"
 const IWorkUserName = "IWork"
 const IWorkEmail = "cs319.icbc@outlook.com"
-const EmailBody = `You can manage your bookings and offerings under the manage tab at <a href="http://icbc-iwork-staging.herokuapp.com/">http://icbc-iwork-staging.herokuapp.com/</a>`
+const EmailBody = `
+	You can manage your bookings and offerings under the manage tab at <a href="http://icbc-iwork-staging.herokuapp.com/">http://icbc-iwork-staging.herokuapp.com/</a>
+	Please note that cancelling this invite wont cancel this action. Please contact an admin in this scenario
+`
 
 func (c *SendGridClient) SendConfirmation(typeS string, params *EmailParams) error {
 	from := mail.NewEmail(IWorkUserName, IWorkEmail)
