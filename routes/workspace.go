@@ -535,6 +535,7 @@ func (app *App) BulkCreateWorkspaces(w http.ResponseWriter, r *http.Request) {
 	createdWorkspaces := make([]*model.CreateWorkspaceInput, 0)
 	for _, ws := range input.Workspaces {
 		workspace := &model.Workspace{
+			ID:      ws.WorkspaceId,
 			Floor:   input.FloorId,
 			Name:    ws.WorkspaceName,
 			Props:   ws.Props,
