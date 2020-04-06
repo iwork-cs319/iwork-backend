@@ -310,7 +310,7 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 
 	now := time.Now()
 	log.Printf("Postgres.CreateAssignWorkspace: time.Now()=%s", now.UTC().String())
-	log.Printf("--- u:%s, n:%s\n", userId, workspace.Name)
+	//log.Printf("--- u:%s, n:%s\n", userId, workspace.Name)
 	var workspaceId string
 	newWorkspaceCreated := false
 	existsStmt := `SELECT id FROM workspaces WHERE name=$1 AND floor_id=$2`
@@ -328,7 +328,7 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 		}
 		newWorkspaceCreated = true
 		workspace.ID = workspaceId
-		log.Println("--- Created new workspace", workspace)
+		//log.Println("--- Created new workspace", workspace)
 	}
 
 	currentlyAssignedUserId := ""
@@ -341,7 +341,7 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 			currentlyAssignedUserId = ""
 		}
 	}
-	log.Println("--- Currently Assigned userID: ", currentlyAssignedUserId)
+	//log.Println("--- Currently Assigned userID: ", currentlyAssignedUserId)
 	if userId == "" { // Create offering
 		if newWorkspaceCreated {
 			// create default offering
@@ -383,12 +383,11 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 			var waId string
 			createAssignmentStmt :=
 				`INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
-			log.Println("=== ", userId, workspaceId, now)
 			err = tx.QueryRow(createAssignmentStmt, userId, workspaceId, now).Scan(&waId)
 			if err != nil {
 				return "", err
 			}
-			log.Println("--- Created Assignment: ", waId)
+			//log.Println("--- Created Assignment: ", waId)
 		} else if currentlyAssignedUserId != userId {
 			// check for future bookings on this workspace;
 			var count int
@@ -409,7 +408,7 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 				log.Printf("PostgresDBStore.CreateAssignment: error updating older assignment: %v\n", err)
 				return "", err
 			}
-			log.Println("--- Cancelled all assignments ")
+			//log.Println("--- Cancelled all assignments ")
 
 			// End any default offerings
 			updateDefaultOfferingsStmt := `UPDATE offerings SET end_time=$2 WHERE workspace_id=$1 AND end_time IS NULL RETURNING id`
@@ -418,7 +417,7 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 				log.Printf("PostgresDBStore.CreateAssignment: error updating default future offerings: %v\n", err)
 				return "", err
 			}
-			log.Println("--- Cancelled all default Offerings ")
+			//log.Println("--- Cancelled all default Offerings ")
 
 			// update any non-default offerings (cancel them)
 			updateOfferingsStmt := `UPDATE offerings SET cancelled=TRUE WHERE workspace_id=$1 AND end_time >= $2 RETURNING id`
@@ -427,7 +426,7 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 				log.Printf("PostgresDBStore.CreateDefaultOffering: error updating future offerings: %v\n", err)
 				return "", err
 			}
-			log.Println("--- Cancelled all Offerings ")
+			//log.Println("--- Cancelled all Offerings ")
 			// create assignment
 			var waId string
 			createAssignmentStmt :=
@@ -436,7 +435,7 @@ func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userI
 			if err != nil {
 				return "", nil
 			}
-			log.Println("--- Created Assignment: ", waId)
+			//log.Println("--- Created Assignment: ", waId)
 		}
 	}
 	err = tx.Commit()

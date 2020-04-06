@@ -506,7 +506,7 @@ func (app *App) CreateAssignments(w http.ResponseWriter, r *http.Request) {
 		}
 		id, err := app.store.WorkspaceProvider.CreateAssignWorkspace(workspace, userId)
 		if err != nil {
-			log.Println("App.CreateAssignments - failed to create workspace-assignment: " + err.Error())
+			log.Printf("App.CreateAssignments - failed to create workspace-assignment for w:%s u:%s err:%s ", workspace, userId, err.Error())
 		}
 		workspace.ID = id
 		workspaces = append(workspaces, workspace)
