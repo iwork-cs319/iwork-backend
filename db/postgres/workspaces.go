@@ -222,20 +222,28 @@ func (p PostgresDBStore) CreateAssignment(userId, workspaceId string) error {
 	now := time.Now()
 	log.Printf("Postgres.CreateAssignment: time.Now()=%s", now.UTC().String())
 
-	var count int
-	if err = tx.QueryRow(
-		`SELECT count(*) FROM workspace_assignee
-					WHERE workspace_id=$1 AND user_id=$2 AND end_time IS NULL`,
-		workspaceId, userId,
-	).Scan(&count); err != nil {
+	var assignedWorkspaceId string
+	err = tx.QueryRow(
+		`SELECT workspace_id FROM workspace_assignee
+					WHERE user_id=$1 AND end_time IS NULL`,
+		userId,
+	).Scan(&assignedWorkspaceId)
+	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
-	if count > 0 {
-		return nil
+	if err != sql.ErrNoRows { // some assignment exists for this user
+		if assignedWorkspaceId == workspaceId {
+			// Already assigned to this workspace
+			return nil
+		}
+		if assignedWorkspaceId != "" {
+			// Already assigned to a workspace
+			return nil
+		}
 	}
 
 	// Check for future bookings
-
+	var count int
 	if err = tx.QueryRow(
 		`SELECT count(*) FROM bookings 
 						WHERE workspace_id=$1 AND end_time >= $2`,
@@ -282,84 +290,153 @@ func (p PostgresDBStore) CreateAssignment(userId, workspaceId string) error {
 }
 
 func (p PostgresDBStore) CreateAssignWorkspace(workspace *model.Workspace, userId string) (string, error) {
+	// Create workspace if doesnt exist; new=true if newly created
+	// If userId attached is empty;
+	// 		-> if new create default offering
+	// 		-> else
+	//			-> if currently assigned -> cancel assignment and create default offering
+	//			-> else do nothing
+	// Else (create new assignment)
+	// 		-> if assigned to userID do nothing
+	// 		-> if new create assignment
+	// 		-> else (change of assignment)
+	// 			-> if no future bookings -> cancel current assignment and offering; create assignment
+	// 			-> else fail
 	tx, err := p.database.Begin()
-	now := time.Now()
-	cancelTime := now.Add(BookingAdvanceTime)
-	existing := false
-	defer tx.Rollback()
 	if err != nil {
 		return "", err
 	}
+	defer tx.Rollback()
+
+	now := time.Now()
+	log.Printf("Postgres.CreateAssignWorkspace: time.Now()=%s", now.UTC().String())
+	log.Printf("--- u:%s, n:%s\n", userId, workspace.Name)
 	var workspaceId string
+	newWorkspaceCreated := false
 	existsStmt := `SELECT id FROM workspaces WHERE name=$1 AND floor_id=$2`
 	err = tx.QueryRow(existsStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
 	if err != nil && err != sql.ErrNoRows {
+		// something bad happened; during query
 		return "", err
 	}
 	if err == sql.ErrNoRows {
-		// it doesnt exist; create it
+		// workspace doesnt exist; create it
 		createWorkspaceStmt := `INSERT INTO workspaces(name, floor_id) VALUES ($1, $2) RETURNING id`
 		err = tx.QueryRow(createWorkspaceStmt, workspace.Name, workspace.Floor).Scan(&workspaceId)
 		if err != nil {
 			return "", err
 		}
-		existing = false
-	} else {
-		// Cancel any default offerings
-		var offeringId string
-		var startTime time.Time
-		err = tx.QueryRow(`SELECT id, start_time from offerings where workspace_id=$1 AND end_time IS NULL AND user_id=$2`, workspaceId, utils.EmptyUserUUID).Scan(&offeringId, &startTime)
+		newWorkspaceCreated = true
+		workspace.ID = workspaceId
+		log.Println("--- Created new workspace", workspace)
+	}
+
+	currentlyAssignedUserId := ""
+	if !newWorkspaceCreated {
+		err = tx.QueryRow(`SELECT user_id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NULL`, workspaceId).Scan(&currentlyAssignedUserId)
 		if err != nil && err != sql.ErrNoRows {
 			return "", err
 		}
-		if startTime.After(cancelTime) {
-			cancelTime = startTime.Add(24 * time.Hour)
+		if err == sql.ErrNoRows {
+			currentlyAssignedUserId = ""
 		}
-		if err != sql.ErrNoRows {
-			updateStmt := `UPDATE offerings SET end_time=$2 WHERE id=$1 RETURNING id`
-			var x string
-			err = tx.QueryRow(updateStmt, offeringId, cancelTime).Scan(&x)
-			if err != nil {
-				log.Printf("PostgresDBStore.CreateAssignWorkspace: error updating existing default offering: %v\n", err)
-			}
-		}
-		// Cancel any existing assignments
-		var waId string
-		err = tx.QueryRow(`SELECT id FROM workspace_assignee WHERE workspace_id=$1 AND end_time IS NULL`, workspaceId).Scan(&waId)
-		if err != nil && err != sql.ErrNoRows {
-			return "", err
-		}
-		if err != sql.ErrNoRows {
-			updateStmt := `UPDATE workspace_assignee SET end_time=$2 WHERE id=$1 RETURNING id`
-			var x string
-			err = tx.QueryRow(updateStmt, waId, cancelTime).Scan(&x)
-			if err != nil {
-				log.Printf("PostgresDBStore.CreateAssignWorkspace: error updating older assignment: %v\n", err)
-			}
-		}
-		existing = true
 	}
-	createTime := cancelTime.Add(time.Hour * 24)
-	if !existing {
-		createTime = now
-	}
-	if userId != "" {
-		// Create an assignment
-		var waId string
-		createAssignmentStmt :=
-			`INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
-		err = tx.QueryRow(createAssignmentStmt, userId, workspaceId, createTime).Scan(&waId)
-		if err != nil {
-			return "", nil
+	log.Println("--- Currently Assigned userID: ", currentlyAssignedUserId)
+	if userId == "" { // Create offering
+		if newWorkspaceCreated {
+			// create default offering
+			sqlStatement :=
+				`INSERT INTO offerings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+			var id string
+			err := tx.QueryRow(sqlStatement, utils.EmptyUserUUID, workspaceId, now, nil, utils.EmptyUserUUID).Scan(&id)
+			if err != nil {
+				return "", err
+			}
+			log.Println("--- Created New Default offering: ", id)
+		} else {
+			if currentlyAssignedUserId != "" {
+				// cancel assignment
+				updateStmt :=
+					`UPDATE workspace_assignee SET end_time=$2 WHERE end_time IS NULL AND workspace_id=$1 AND user_id=$3 RETURNING id`
+				var x string
+				err = tx.QueryRow(updateStmt, workspaceId, now, currentlyAssignedUserId).Scan(&x)
+				if err != nil {
+					log.Printf("PostgresDBStore.CreateAssignWorkspace: error updating older assignment: %v\n", err)
+					return "", err
+				}
+				log.Println("--- Cancelled assignment: ", x)
+				// create default offering
+				sqlStatement :=
+					`INSERT INTO offerings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+				var id string
+				err := tx.QueryRow(sqlStatement, utils.EmptyUserUUID, workspaceId, now, nil, utils.EmptyUserUUID).Scan(&id)
+				if err != nil {
+					return "", err
+				}
+				log.Println("--- Created New Default offering: ", id)
+			}
+			// already offered -> do nothing
 		}
-	} else {
-		// Create an offering
-		sqlStatement :=
-			`INSERT INTO offerings(user_id, workspace_id, start_time, end_time, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id`
-		var id string
-		err := tx.QueryRow(sqlStatement, utils.EmptyUserUUID, workspaceId, createTime, nil, utils.EmptyUserUUID).Scan(&id)
-		if err != nil {
-			return "", err
+	} else { // Create new assignment
+		if newWorkspaceCreated {
+			// Create assignment
+			var waId string
+			createAssignmentStmt :=
+				`INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
+			log.Println("=== ", userId, workspaceId, now)
+			err = tx.QueryRow(createAssignmentStmt, userId, workspaceId, now).Scan(&waId)
+			if err != nil {
+				return "", err
+			}
+			log.Println("--- Created Assignment: ", waId)
+		} else if currentlyAssignedUserId != userId {
+			// check for future bookings on this workspace;
+			var count int
+			if err = tx.QueryRow(
+				`SELECT count(*) FROM bookings 
+						WHERE workspace_id=$1 AND end_time >= $2`,
+				workspaceId, now,
+			).Scan(&count); err != nil {
+				return "", err
+			}
+			if count > 0 {
+				return "", errors.New("invalid operation: workspace has outstanding bookings")
+			}
+			// cancel current assignment and offering
+			updateAssignmentsStmt := `UPDATE workspace_assignee SET end_time=$2 WHERE workspace_id=$1 AND end_time IS NULL RETURNING id`
+			_, err = tx.Exec(updateAssignmentsStmt, workspaceId, now)
+			if err != nil {
+				log.Printf("PostgresDBStore.CreateAssignment: error updating older assignment: %v\n", err)
+				return "", err
+			}
+			log.Println("--- Cancelled all assignments ")
+
+			// End any default offerings
+			updateDefaultOfferingsStmt := `UPDATE offerings SET end_time=$2 WHERE workspace_id=$1 AND end_time IS NULL RETURNING id`
+			_, err = tx.Exec(updateDefaultOfferingsStmt, workspaceId, now)
+			if err != nil {
+				log.Printf("PostgresDBStore.CreateAssignment: error updating default future offerings: %v\n", err)
+				return "", err
+			}
+			log.Println("--- Cancelled all default Offerings ")
+
+			// update any non-default offerings (cancel them)
+			updateOfferingsStmt := `UPDATE offerings SET cancelled=TRUE WHERE workspace_id=$1 AND end_time >= $2 RETURNING id`
+			_, err = tx.Exec(updateOfferingsStmt, workspaceId, now)
+			if err != nil {
+				log.Printf("PostgresDBStore.CreateDefaultOffering: error updating future offerings: %v\n", err)
+				return "", err
+			}
+			log.Println("--- Cancelled all Offerings ")
+			// create assignment
+			var waId string
+			createAssignmentStmt :=
+				`INSERT INTO workspace_assignee(user_id, workspace_id, start_time) VALUES ($1, $2, $3) RETURNING id`
+			err = tx.QueryRow(createAssignmentStmt, userId, workspaceId, now).Scan(&waId)
+			if err != nil {
+				return "", nil
+			}
+			log.Println("--- Created Assignment: ", waId)
 		}
 	}
 	err = tx.Commit()
