@@ -7,6 +7,7 @@ import (
 	"go-api/db/postgres"
 	"go-api/mail"
 	"go-api/utils"
+	"google.golang.org/api/drive/v3"
 	"io"
 	"log"
 	"net/http"
@@ -67,6 +68,16 @@ func TestApp(t *testing.T) {
 // MOCKS
 type mockDrive struct {
 	mock.Mock
+}
+
+func (m *mockDrive) UploadArchiveDataFile(name string, content io.Reader) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *mockDrive) ListAllFiles() ([]*drive.File, error) {
+	args := m.Called()
+	return nil, args.Error(1)
 }
 
 func (m *mockDrive) UploadFloorPlan(name string, content io.Reader) (string, error) {

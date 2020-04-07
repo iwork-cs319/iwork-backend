@@ -60,9 +60,11 @@ func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAs
 		return nil, err
 	}
 
-	sqlStatement := `SELECT users.id, name, email, department, is_admin, wa.workspace_id FROM users 
+	sqlStatement := `SELECT users.id, users.name, email, department, is_admin, wa.workspace_id FROM users 
 							INNER JOIN workspace_assignee wa ON users.id = wa.user_id
-							WHERE users.deleted=FALSE AND wa.start_time <= $1 AND (wa.end_time >= $2 OR end_time IS NULL)`
+    						INNER JOIN workspaces w on wa.workspace_id = w.id
+							WHERE users.deleted=FALSE AND w.deleted=FALSE 
+							  AND wa.start_time <= $1 AND (wa.end_time >= $2 OR end_time IS NULL)`
 	rows, err := p.database.Query(sqlStatement, start, end)
 	if err != nil {
 		return nil, err
@@ -108,9 +110,11 @@ func (p PostgresDBStore) GetAssignedUsers(start, end time.Time) ([]*model.UserAs
 }
 
 func (p PostgresDBStore) GetAssignedUsersByTime(timestamp time.Time) ([]*model.UserAssignment, error) {
-	sqlStatement := `SELECT users.id, name, email, department, is_admin, wa.workspace_id FROM users 
-							INNER JOIN workspace_assignee wa ON users.id = wa.user_id
-							WHERE wa.start_time <= $1 AND (wa.end_time >= $1 OR end_time IS NULL)`
+	sqlStatement := `SELECT users.id, users.name, email, department, is_admin, wa.workspace_id FROM users 
+							INNER JOIN workspace_assignee wa ON users.id = wa.user_id 
+    						INNER JOIN workspaces w on wa.workspace_id = w.id
+							WHERE w.deleted=FALSE 
+							  AND wa.start_time <= $1 AND (wa.end_time >= $1 OR end_time IS NULL)`
 	rows, err := p.database.Query(sqlStatement, timestamp)
 	if err != nil {
 		return nil, err
