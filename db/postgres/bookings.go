@@ -156,7 +156,7 @@ func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
                     	   (start_time >= $2 AND end_time <= $3) OR
                     	   `,
 		// todo: pray can you proof check that ORs 1 and 2 handle this case (start_time <= $2 AND end_time >= $3)
-		booking.WorkspaceID, booking.StartDate, booking.EndDate,
+		booking.UserID, booking.StartDate, booking.EndDate,
 	).Scan(&count)
 	if err != nil || count != 0 {
 		return "", errors.New("invalid operation: the user has a booking in this date range")
