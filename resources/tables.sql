@@ -1,3 +1,4 @@
+create extension if not exists "uuid-ossp";
 DROP TABLE IF EXISTS offerings;
 DROP TABLE IF EXISTS bookings;
 DROP TABLE IF EXISTS workspace_assignee;

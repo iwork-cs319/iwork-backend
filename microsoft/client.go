@@ -301,6 +301,9 @@ func (c *ADClient) Ping() error {
 func (c *ADClient) GetAllUsers() (map[string]interface{}, error) {
 	reqUrl := fmt.Sprintf("%s/users", GraphUrl)
 	resp, err := c.doRequest("GET", reqUrl, nil)
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
 	reqBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -316,10 +319,10 @@ func (c *ADClient) sendCalendarInvite(invite *CalendarInvite) error {
 	reqUrl := fmt.Sprintf("%s/users/%s/events", GraphUrl, c.adminUserId)
 	body := bytes.NewBuffer(buildCalendarInviteBody(invite))
 	resp, err := c.doRequest("POST", reqUrl, body)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		return errors.New(fmt.Sprintf("failed to send email, %d", resp.StatusCode))
 	}
@@ -331,10 +334,10 @@ func (c *ADClient) sendEmail(email *EmailBody) error {
 	reqUrl := fmt.Sprintf("%s/users/%s/sendmail", GraphUrl, c.adminUserId)
 	body := bytes.NewBuffer(buildEmailBody(email))
 	resp, err := c.doRequest("POST", reqUrl, body)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		return errors.New(fmt.Sprintf("failed to send email, %d", resp.StatusCode))
 	}

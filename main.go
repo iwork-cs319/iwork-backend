@@ -12,7 +12,7 @@ func main() {
 		port = "8080"
 		log.Println("Did not find env var PORT, defaulting to 8080")
 	}
-	dbUrl := os.Getenv("DATABASE_URL")
+	dbUrl := os.Getenv("HEROKU_POSTGRESQL_AQUA_URL")
 	gDriveCredentials := os.Getenv("G_DRIVE_CREDENTIALS")
 	msClientId := os.Getenv("MICROSOFT_CLIENT_ID")
 	msGraphScope := os.Getenv("MICROSOFT_GRAPH_SCOPE")
