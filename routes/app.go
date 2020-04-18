@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
+	"go-api/cache"
 	"go-api/db"
 	"go-api/db/postgres"
 	"go-api/mail"
@@ -11,14 +11,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 )
 
 type App struct {
 	router *mux.Router
 	store  *db.DataStore
 	gDrive db.Drive
-	cache  *redis.Pool
+	cache  cache.Cache
 	email  mail.EmailClient
 }
 
@@ -57,12 +56,10 @@ func NewApp(config *AppConfig) *App {
 		log.Println("Failed to create AD Client")
 		log.Fatal(err)
 	}
-	redisCache := &redis.Pool{
-		MaxIdle:     10,
-		IdleTimeout: 240 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			return redis.DialURL(redisUrl)
-		},
+	redisCache, err := cache.NewRedis(redisUrl)
+	if err != nil {
+		log.Println("Failed to connect to redis")
+		log.Fatal(err)
 	}
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),

@@ -99,6 +99,18 @@ func (m *mockEmail) SendCancellation(typeS string, params *mail.EmailParams) err
 	return args.Error(0)
 }
 
+type mockCache struct {
+	mock.Mock
+}
+
+func (m *mockCache) CheckWorkspaceLock(workspaceId string, start, end time.Time) (bool, error) {
+	return false, nil
+}
+
+func (m *mockCache) CreateWorkspaceLock(workspaceId string, start, end time.Time) error {
+	return nil
+}
+
 func NewTestApp() *App {
 	dbUrl := os.Getenv("TEST_DB_URL")
 	store, err := postgres.NewPostgresDataStore(dbUrl)
@@ -106,10 +118,13 @@ func NewTestApp() *App {
 		log.Println("Failed to connect to database")
 		log.Fatal(err)
 	}
+	mockCache := new(mockCache)
+	mockDrive := new(mockDrive)
 	return &App{
 		router: mux.NewRouter().StrictSlash(true),
 		store:  store,
-		gDrive: nil,
+		gDrive: mockDrive,
+		cache:  mockCache,
 	}
 }
 
