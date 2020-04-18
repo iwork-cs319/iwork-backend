@@ -153,9 +153,9 @@ func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
 					WHERE user_id=$1 AND cancelled=FALSE AND
                     	   (start_time <= $2 AND end_time >= $2) OR
                     	   (start_time <= $3 AND end_time >= $3) OR
-                    	   (start_time >= $2 AND end_time <= $3)
+                    	   (start_time >= $2 AND end_time <= $3) OR
+                    	   (start_time <= $2 AND end_time >= $3)
                     	   `,
-		// todo: pray can you proof check that ORs 1 and 2 handle this case (start_time <= $2 AND end_time >= $3)
 		booking.UserID, booking.StartDate, booking.EndDate,
 	).Scan(&count) // if sql query fails, count won't be "updated" -> check error
 	if err != nil || count != 0 {
@@ -163,7 +163,7 @@ func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
 	}
 
 	// Max 10 Bookings per user
-	loc, err := time.LoadLocation("America/Vancouver")
+	loc, err := time.LoadLocation("UTC")
 	if err != nil {
 		return "", errors.New("invalid operation: location failed")
 	}
