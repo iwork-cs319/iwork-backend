@@ -73,7 +73,7 @@ func (suite *AppTestSuite) TestGetAvailable() {
 			"1547596800",
 		),
 	})
-	require.Equal(t, rr.Code, http.StatusOK, "status code")
+	require.Equal(t, http.StatusOK, rr.Code, "status code")
 
 	var payload []*string
 	_ = json.Unmarshal(rr.Body.Bytes(), &payload)

@@ -32,6 +32,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 		Methods("GET").
 		Queries("start", "{start:[0-9]+}").
 		Queries("end", "{end:[0-9]+}")
+	app.router.HandleFunc("/workspaces/lock", app.LockWorkspace).Methods("POST")
 	app.router.HandleFunc("/bulk/workspaces", app.BulkCreateWorkspaces).Methods("POST")
 	app.router.HandleFunc("/workspaces", app.CreateWorkspace).Methods("POST")
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
@@ -200,6 +201,33 @@ func (app *App) UpdateWorkspaceProps(w http.ResponseWriter, r *http.Request) {
 //	w.WriteHeader(http.StatusOK)
 //}
 
+func (app *App) LockWorkspace(w http.ResponseWriter, r *http.Request) {
+	var lockWorkspaceInput model.LockWorkspaceInput
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("App.LockWorkspace - error reading request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(reqBody, &lockWorkspaceInput)
+	if err != nil {
+		log.Printf("App.LockWorkspace - error unmarshaling request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = app.cache.CreateWorkspaceLock(
+		lockWorkspaceInput.WorkspaceId,
+		lockWorkspaceInput.StartDate,
+		lockWorkspaceInput.EndDate,
+	)
+	if err != nil {
+		log.Printf("App.LockWorkspace - error locking workspace input:%v %v", lockWorkspaceInput, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (app *App) GetAvailability(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	start := queryParams["start"][0]
@@ -228,7 +256,21 @@ func (app *App) GetAvailability(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(workspaceIds)
+	availableIds := make([]string, 0)
+	for _, wId := range workspaceIds {
+		locked, err := app.cache.CheckWorkspaceLock(wId, startTime, endTime)
+		if err != nil {
+			log.Printf("App.FindAvailability - error getting ids from provider %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !locked {
+			// Can be made faster with slice tricks
+			availableIds = append(availableIds, wId)
+		}
+	}
+
+	json.NewEncoder(w).Encode(availableIds)
 }
 
 func (app *App) GetAllFloorsAvailability(w http.ResponseWriter, r *http.Request) {
