@@ -33,6 +33,7 @@ func (app *App) RegisterWorkspaceRoutes() {
 		Queries("start", "{start:[0-9]+}").
 		Queries("end", "{end:[0-9]+}")
 	app.router.HandleFunc("/workspaces/lock", app.LockWorkspace).Methods("POST")
+	app.router.HandleFunc("/workspaces/unlock", app.UnlockWorkspace).Methods("POST")
 	app.router.HandleFunc("/bulk/workspaces", app.BulkCreateWorkspaces).Methods("POST")
 	app.router.HandleFunc("/workspaces", app.CreateWorkspace).Methods("POST")
 	app.router.HandleFunc("/workspaces/{id}", app.GetOneWorkspace).Methods("GET")
@@ -215,13 +216,44 @@ func (app *App) LockWorkspace(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err = app.cache.CreateWorkspaceLock(
+	key, err := app.cache.CreateWorkspaceLock(
 		lockWorkspaceInput.WorkspaceId,
 		lockWorkspaceInput.StartDate,
 		lockWorkspaceInput.EndDate,
 	)
 	if err != nil {
 		log.Printf("App.LockWorkspace - error locking workspace input:%v %v", lockWorkspaceInput, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	lock := &model.WorkspaceLock{
+		WorkspaceId: lockWorkspaceInput.WorkspaceId,
+		CreatedAt:   key,
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(lock)
+}
+
+func (app *App) UnlockWorkspace(w http.ResponseWriter, r *http.Request) {
+	var workspaceLock model.WorkspaceLock
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("App.UnlockWorkspace - error reading request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(reqBody, &workspaceLock)
+	if err != nil {
+		log.Printf("App.UnlockWorkspace - error unmarshaling request body %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = app.cache.DeleteWorkspaceLock(
+		workspaceLock.WorkspaceId,
+		workspaceLock.CreatedAt,
+	)
+	if err != nil {
+		log.Printf("App.UnlockWorkspace - error locking workspace input:%v %v", workspaceLock, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

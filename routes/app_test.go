@@ -103,12 +103,16 @@ type mockCache struct {
 	mock.Mock
 }
 
-func (m *mockCache) CheckWorkspaceLock(workspaceId string, start, end time.Time) (bool, error) {
-	return false, nil
+func (m *mockCache) CreateWorkspaceLock(workspaceId string, start, end time.Time) (string, error) {
+	return "", nil
 }
 
-func (m *mockCache) CreateWorkspaceLock(workspaceId string, start, end time.Time) error {
+func (m *mockCache) DeleteWorkspaceLock(workspaceId string, key string) error {
 	return nil
+}
+
+func (m *mockCache) CheckWorkspaceLock(workspaceId string, start, end time.Time) (bool, error) {
+	return false, nil
 }
 
 func NewTestApp() *App {
