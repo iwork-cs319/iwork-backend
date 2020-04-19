@@ -151,10 +151,10 @@ func (p PostgresDBStore) CreateBooking(booking *model.Booking) (string, error) {
 	err = tx.QueryRow(
 		`SELECT count(*) FROM bookings 
 					WHERE user_id=$1 AND cancelled=FALSE AND
-                    	   (start_time <= $2 AND end_time >= $2) OR
+                    	   ((start_time <= $2 AND end_time >= $2) OR
                     	   (start_time <= $3 AND end_time >= $3) OR
                     	   (start_time >= $2 AND end_time <= $3) OR
-                    	   (start_time <= $2 AND end_time >= $3)
+                    	   (start_time <= $2 AND end_time >= $3))
                     	   `,
 		booking.UserID, booking.StartDate, booking.EndDate,
 	).Scan(&count) // if sql query fails, count won't be "updated" -> check error
