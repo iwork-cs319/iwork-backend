@@ -38,3 +38,8 @@ type LockWorkspaceInput struct {
 	StartDate   time.Time `json:"start_time"`
 	EndDate     time.Time `json:"end_time"`
 }
+
+type WorkspaceLock struct {
+	WorkspaceId string `json:"workspace_id"`
+	CreatedAt   string `json:"created_at"`
+}

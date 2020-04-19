@@ -47,7 +47,7 @@ func (c *RedisCache) Ping() error {
 const WorkspaceLockKey = "wLockKey"
 const LockExpiry = 20 * time.Minute
 
-func (c *RedisCache) CreateWorkspaceLock(workspaceId string, start, end time.Time) error {
+func (c *RedisCache) CreateWorkspaceLock(workspaceId string, start, end time.Time) (string, error) {
 	conn := c.pool.Get()
 	defer conn.Close()
 
@@ -56,6 +56,18 @@ func (c *RedisCache) CreateWorkspaceLock(workspaceId string, start, end time.Tim
 	val := fmt.Sprintf("%d-%d", start.Unix(), end.Unix())
 
 	if _, err := conn.Do("HSET", hashKey, key, val); err != nil {
+		return "", err
+	}
+	return key, nil
+}
+
+func (c *RedisCache) DeleteWorkspaceLock(workspaceId, key string) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+
+	hashKey := fmt.Sprintf("%s:%s", WorkspaceLockKey, workspaceId)
+	_, err := conn.Do("HDEL", hashKey, key)
+	if err != nil {
 		return err
 	}
 	return nil
